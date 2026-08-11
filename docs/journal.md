@@ -24,9 +24,15 @@
   제거했다.
 - **검증**: 프런트 단위 테스트 18개 파일·332개, lint, 타입 검사, production build를 통과했다.
   전용 disposable PostGIS에서 API 59개와 장소 검색·페이지네이션 23개 테스트를 통과시켰다.
-  live E2E·prod 검증은 PR 병합 뒤 n150에서 이어서 수행한다.
+  n150 live UI E2E는 4개 통과(로컬 시드 전용 46개 skip)했고, 배포 뒤에도 같은 4개를
+  재실행해 통과시켰다.
 - **live UI E2E**: 검수 화면의 기본 처리 모드에서 목록 전용 테이블을 기대하던 selector를
-  목록/관리 모드 전환 뒤 검증하도록 고쳤다. 운영 데이터에는 영향을 주지 않는다.
+  목록/관리 모드 전환 뒤 검증하고, 일괄 선택 상태와 Google Maps Places 표기도 현재 UI와
+  일치하도록 고쳤다. 운영 데이터에는 영향을 주지 않는다.
+- **n150 prod 배포**: API·scheduler·UI를 분리 재생성했다. 승인 아래 manager의 누락된 UI
+  override와 Map migration 환경값을 복구해 UI의 raw env·production start 계약을 되살렸으며,
+  API health 200, 로그인 페이지 200, 로그인 POST 200+Set-Cookie, 틀린 비밀번호 401과 UI
+  인증 환경값 길이를 확인했다.
 
 ---
 
