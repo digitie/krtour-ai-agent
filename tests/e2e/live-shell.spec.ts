@@ -143,6 +143,11 @@ test.describe('n150 live UI 셸 검증', () => {
     await loginAsAdmin(page, '/review');
 
     await expect(page.getByRole('heading', { name: '검수 큐', exact: true })).toBeVisible();
+    const modeGroup = page.getByRole('group', { name: '검수 화면 모드' });
+    await modeGroup.getByRole('button', { name: '목록/관리' }).click();
+    await expect(
+      modeGroup.getByRole('button', { name: '목록/관리' }),
+    ).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByText('검수 대기 후보')).toBeVisible();
 
     try {
