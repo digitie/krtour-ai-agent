@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -78,6 +77,7 @@ export function RecurringEditDialog({
 }) {
   const queryClient = useQueryClient();
   const open = Boolean(target);
+  const [queryEdit, setQueryEdit] = useState<string | null>(null);
   const [intervalEdit, setIntervalEdit] = useState<number | null>(null);
   const [maxRunsEdit, setMaxRunsEdit] = useState<number | null>(null);
   const [maxVideosEdit, setMaxVideosEdit] = useState<number | null>(null);
@@ -87,6 +87,8 @@ export function RecurringEditDialog({
   );
   const [forceRunOnce, setForceRunOnce] = useState(false);
 
+  const isKeywordTarget = target?.target_type === "keyword";
+  const query = queryEdit ?? target?.source_value ?? "";
   const interval = intervalEdit ?? target?.scan_interval_minutes ?? 1440;
   const maxRuns = maxRunsEdit ?? target?.max_runs ?? 0;
   const maxVideos = maxVideosEdit ?? target?.max_videos ?? 20;
@@ -118,6 +120,7 @@ export function RecurringEditDialog({
     null;
 
   function close() {
+    setQueryEdit(null);
     setIntervalEdit(null);
     setMaxRunsEdit(null);
     setMaxVideosEdit(null);
@@ -128,29 +131,68 @@ export function RecurringEditDialog({
   }
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      const updated = await updateSourceTarget(target!.id, {
-        scanIntervalMinutes: interval,
-        maxRuns,
-        maxVideos,
-        isActive: active,
-        defaultCategoryCode,
+    mutationFn: async ({
+      targetId,
+      query: nextQuery,
+      interval: nextInterval,
+      maxRuns: nextMaxRuns,
+      maxVideos: nextMaxVideos,
+      active: nextActive,
+      defaultCategoryCode: nextDefaultCategoryCode,
+      forceRunOnce: shouldForceRunOnce,
+    }: {
+      targetId: number;
+      query: string;
+      interval: number;
+      maxRuns: number;
+      maxVideos: number;
+      active: boolean;
+      defaultCategoryCode: string;
+      forceRunOnce: boolean;
+    }) => {
+      const updated = await updateSourceTarget(targetId, {
+        query: isKeywordTarget ? nextQuery.trim() : undefined,
+        scanIntervalMinutes: nextInterval,
+        maxRuns: nextMaxRuns,
+        maxVideos: nextMaxVideos,
+        isActive: nextActive,
+        defaultCategoryCode: nextDefaultCategoryCode,
       });
-      if (forceRunOnce) {
-        await runSourceTargetNow(target!.id, true);
+      if (shouldForceRunOnce) {
+        await runSourceTargetNow(targetId, true);
       }
       return updated;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["source-targets"] });
       queryClient.invalidateQueries({ queryKey: ["runs"] });
       queryClient.invalidateQueries({ queryKey: RUN_QUEUE_QUERY_KEY });
-      close();
+      // 저장 도중 다른 작업으로 전환된 경우, 이전 요청의 늦은 성공이 현재 다이얼로그를
+      // 닫거나 입력을 초기화하면 안 된다.
+      if (target?.id === variables.targetId) close();
     },
   });
 
+  function save() {
+    if (!target || mutation.isPending) return;
+    mutation.mutate({
+      targetId: target.id,
+      query,
+      interval,
+      maxRuns,
+      maxVideos,
+      active,
+      defaultCategoryCode,
+      forceRunOnce,
+    });
+  }
+
+  function requestClose() {
+    if (!mutation.isPending) close();
+  }
+
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && close()}>
+    <Dialog open={open} onOpenChange={(next) => !next && requestClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -191,6 +233,24 @@ export function RecurringEditDialog({
         ) : null}
 
         <section className="flex flex-col gap-4 border-t pt-4">
+          {isKeywordTarget ? (
+            <Field>
+              <div className="flex items-center gap-1">
+                <FieldLabel htmlFor="recurring-edit-query">검색어</FieldLabel>
+                <HelpTip>
+                  검색어를 바꾸면 이전 검색의 증분 기준과 실행 횟수는 초기화됩니다.
+                  이미 수집된 영상과 장소는 삭제하지 않습니다.
+                </HelpTip>
+              </div>
+              <Input
+                id="recurring-edit-query"
+                value={query}
+                maxLength={255}
+                onChange={(event) => setQueryEdit(event.target.value)}
+              />
+            </Field>
+          ) : null}
+
           <Field>
             <FieldLabel htmlFor="recurring-edit-interval">반복 간격</FieldLabel>
             <Select
@@ -306,17 +366,18 @@ export function RecurringEditDialog({
         ) : null}
 
         <DialogFooter>
-          <DialogClose
-            render={
-              <Button type="button" variant="outline">
-                닫기
-              </Button>
-            }
-          />
           <Button
             type="button"
-            onClick={() => mutation.mutate()}
+            variant="outline"
             disabled={mutation.isPending}
+            onClick={requestClose}
+          >
+            닫기
+          </Button>
+          <Button
+            type="button"
+            onClick={save}
+            disabled={mutation.isPending || (isKeywordTarget && !query.trim())}
           >
             저장
           </Button>

@@ -134,6 +134,8 @@ async def test_recurring_source_target_lifecycle(client):
     assert deleted.status_code == 200
     assert deleted.json()["status"] == "ok"
     assert (await client.get("/api/v1/source-targets")).json() == []
+    deleted_run = await client.post(f"/api/v1/source-targets/{target['id']}/run-now")
+    assert deleted_run.status_code == 409
 
 
 async def test_stop_pending_run_cancels(client):
@@ -165,7 +167,7 @@ async def test_stop_running_run_sets_cancel_requested(client, session):
 
 async def test_recurring_max_runs_and_patch(client):
     cid = "UCnV8h6ZzQnLoFBFXqHGtxBg"
-    await client.post(
+    created = await client.post(
         "/api/v1/harvest",
         json={
             "channel_id": cid,
@@ -174,6 +176,7 @@ async def test_recurring_max_runs_and_patch(client):
             "repeat_max_runs": 5,
         },
     )
+    assert created.status_code == 200
     target = (await client.get("/api/v1/source-targets")).json()[0]
     assert target["max_runs"] == 5
     assert target["run_count"] == 0
@@ -197,6 +200,107 @@ async def test_recurring_max_runs_and_patch(client):
         "/api/v1/source-targets/999999", json={"is_active": False}
     )
     assert missing.status_code == 404
+
+
+async def test_keyword_recurring_target_query_can_be_changed(client, session):
+    created = await client.post(
+        "/api/v1/harvest",
+        json={
+            "query": "서울 카페",
+            "max_videos": 3,
+            "repeat_interval_minutes": 60,
+            "repeat_max_runs": 5,
+        },
+    )
+    assert created.status_code == 200
+    target = (await client.get("/api/v1/source-targets")).json()[0]
+    from ktc.models import CrawlRun
+
+    initial_run = await session.get(CrawlRun, int(created.json()["job_id"]))
+    assert initial_run is not None
+    assert json.loads(initial_run.payload_json)["source_target_id"] == target["id"]
+    blocked = await client.patch(
+        f"/api/v1/source-targets/{target['id']}",
+        json={"query": "부산 카페"},
+    )
+    assert blocked.status_code == 409
+    # 최초 one-shot은 이전 검색어를 사용하므로 종료 전에는 검색어 수정이 차단된다.
+    # 이 테스트는 완료 뒤 수정 가능한 반복 대상의 reset 계약을 확인한다.
+    stopped = await client.post(f"/api/v1/runs/{created.json()['job_id']}/stop")
+    assert stopped.status_code == 200
+
+    # 같은 검색어의 일회성 수집은 이 반복 작업에 귀속되지 않으므로 수정은 막지 않는다.
+    unrelated = await client.post(
+        "/api/v1/harvest", json={"query": "서울 카페", "max_videos": 1}
+    )
+    assert unrelated.status_code == 200
+
+    updated = await client.patch(
+        f"/api/v1/source-targets/{target['id']}",
+        json={"query": "부산 카페"},
+    )
+
+    assert updated.status_code == 200
+    body = updated.json()
+    assert body["source_value"] == "부산 카페"
+    assert body["target_label"] == "부산 카페"
+    assert body["display_name"] == "부산 카페"
+    assert body["run_count"] == 0
+    assert body["last_crawled_at"] is None
+    assert body["last_seen_video_published_at"] is None
+    assert body["next_crawl_at"] is not None
+
+
+async def test_keyword_recurring_target_query_rejects_duplicate_and_active_run(client):
+    for query in ("서울 카페", "부산 카페"):
+        response = await client.post(
+            "/api/v1/harvest",
+            json={
+                "query": query,
+                "max_videos": 3,
+                "repeat_interval_minutes": 60,
+            },
+        )
+        assert response.status_code == 200
+        stopped = await client.post(f"/api/v1/runs/{response.json()['job_id']}/stop")
+        assert stopped.status_code == 200
+    targets = (await client.get("/api/v1/source-targets")).json()
+    seoul = next(target for target in targets if target["source_value"] == "서울 카페")
+
+    duplicate = await client.patch(
+        f"/api/v1/source-targets/{seoul['id']}",
+        json={"query": "부산 카페"},
+    )
+    assert duplicate.status_code == 409
+    assert "이미 있습니다" in duplicate.json()["detail"]
+
+    started = await client.post(f"/api/v1/source-targets/{seoul['id']}/run-now")
+    assert started.status_code == 200
+    active = await client.patch(
+        f"/api/v1/source-targets/{seoul['id']}",
+        json={"query": "인천 카페"},
+    )
+    assert active.status_code == 409
+    assert "진행 중인 수집" in active.json()["detail"]
+
+
+async def test_keyword_recurring_target_query_rejects_whitespace(client):
+    await client.post(
+        "/api/v1/harvest",
+        json={
+            "query": "서울 카페",
+            "max_videos": 3,
+            "repeat_interval_minutes": 60,
+        },
+    )
+    target = (await client.get("/api/v1/source-targets")).json()[0]
+
+    response = await client.patch(
+        f"/api/v1/source-targets/{target['id']}",
+        json={"query": "   "},
+    )
+
+    assert response.status_code == 422
 
 
 async def test_metrics_endpoint_shape(client):

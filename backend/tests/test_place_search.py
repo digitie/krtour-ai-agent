@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 
 import httpx
@@ -9,6 +10,7 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
+from ktc.api import routes
 from ktc.core.database import get_repeatable_read_session, get_session
 from ktc.etl import llm_client, place_search
 from main import app
@@ -243,8 +245,17 @@ async def test_place_search_opinion_endpoint_bounded(api_client, monkeypatch):
     assert empty.status_code == 200
     assert empty.json() == {"gemini": None, "error": None}
 
-    hit = {
+    google_hit = {
         "provider": "google",
+        "name": "감천문화마을",
+        "address": None,
+        "road_address": None,
+        "latitude": 35.1,
+        "longitude": 129.0,
+        "category": None,
+    }
+    hit = {
+        "provider": "kakao",
         "name": "감천문화마을",
         "address": None,
         "road_address": None,
@@ -263,6 +274,13 @@ async def test_place_search_opinion_endpoint_bounded(api_client, monkeypatch):
         }
 
     monkeypatch.setattr(place_search, "gemini_place_opinion", fake_opinion)
+    google_only = await api_client.post(
+        "/api/v1/place-search/opinion",
+        json={"query": "감천문화마을", "hits": [google_hit]},
+    )
+    assert google_only.status_code == 200
+    assert google_only.json() == {"gemini": None, "error": None}
+
     ok = await api_client.post(
         "/api/v1/place-search/opinion",
         json={"query": "감천문화마을", "hits": [hit]},
@@ -299,3 +317,43 @@ async def test_place_search_opinion_endpoint_bounded(api_client, monkeypatch):
     assert busy_body["gemini"] is None
     assert "쿼터 윈도우 대기 중" in busy_body["error"]
     assert "시간 초과" not in busy_body["error"]
+
+    too_many = await api_client.post(
+        "/api/v1/place-search/opinion",
+        json={"query": "감천문화마을", "hits": [hit] * 16},
+    )
+    assert too_many.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_place_search_endpoint_returns_partial_results_after_provider_deadline(
+    api_client, monkeypatch
+):
+    async def fake_secret(_session, _key):
+        return "test-key"
+
+    async def slow_google(*_args, **_kwargs):
+        await asyncio.sleep(routes.PLACE_SEARCH_PROVIDER_TIMEOUT_SECONDS + 1)
+        return []
+
+    async def fast_kakao(*_args, **_kwargs):
+        return [{"provider": "kakao", "name": "빠른 결과"}]
+
+    async def fast_naver(*_args, **_kwargs):
+        return []
+
+    monkeypatch.setattr(routes.settings_service, "get_secret", fake_secret)
+    monkeypatch.setattr(place_search, "search_google_places", slow_google)
+    monkeypatch.setattr(place_search, "search_kakao", fast_kakao)
+    monkeypatch.setattr(place_search, "search_naver_local", fast_naver)
+
+    loop = asyncio.get_running_loop()
+    started = loop.time()
+    response = await api_client.get("/api/v1/place-search", params={"q": "부산 카페"})
+    elapsed = loop.time() - started
+
+    assert response.status_code == 200
+    assert elapsed < routes.PLACE_SEARCH_PROVIDER_TIMEOUT_SECONDS + 0.8
+    body = response.json()
+    assert body["kakao"] == [{"provider": "kakao", "name": "빠른 결과"}]
+    assert "Google 검색이 3초 안에 응답하지 않았습니다" in body["errors"]["google"]

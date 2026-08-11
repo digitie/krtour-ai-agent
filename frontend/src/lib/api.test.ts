@@ -21,6 +21,7 @@ import {
   runQueueRefetchDelay,
   runQueueRefetchInterval,
   stopRun,
+  updateSourceTarget,
   type RunQueueSnapshot,
   type RestartRunResult,
   type ReviewBulkExecuteResult,
@@ -664,6 +665,36 @@ describe("stopRun", () => {
       expect.objectContaining({
         method: "POST",
         headers: { "Content-Type": "application/json" },
+      }),
+    );
+  });
+});
+
+describe("updateSourceTarget", () => {
+  it("검색어 수정과 반복 설정을 PATCH 요청으로 직렬화한다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ id: 7, source_value: "부산 카페" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await updateSourceTarget(7, {
+      query: "부산 카페",
+      scanIntervalMinutes: 720,
+      maxRuns: 5,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/source-targets/7",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          query: "부산 카페",
+          scan_interval_minutes: 720,
+          max_runs: 5,
+        }),
       }),
     );
   });

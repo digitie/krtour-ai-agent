@@ -173,9 +173,14 @@ export function HarvestConsole() {
 
   const mutation = useMutation({
     mutationFn: startHarvest,
-    onSuccess: () => {
+    onSuccess: (_job, input) => {
       form.reset(form.getValues());
       queryClient.invalidateQueries({ queryKey: RUN_QUEUE_QUERY_KEY });
+      // 반복 검색이면 source_target도 함께 만들어진다. 15초 polling을 기다리지
+      // 않고 바로 목록을 갱신해야 수정·삭제 액션에 즉시 접근할 수 있다.
+      if (input.repeatIntervalMinutes != null) {
+        queryClient.invalidateQueries({ queryKey: ["source-targets"] });
+      }
     },
   });
 

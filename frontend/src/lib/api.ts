@@ -1278,6 +1278,7 @@ export async function restartRun(jobId: string): Promise<RestartRunResult> {
 }
 
 export type SourceTargetUpdate = {
+  query?: string;
   scanIntervalMinutes?: number;
   maxRuns?: number;
   isActive?: boolean;
@@ -1292,6 +1293,7 @@ export async function updateSourceTarget(
   return requestJson<SourceTargetSummary>(`/api/v1/source-targets/${id}`, {
     method: "PATCH",
     body: JSON.stringify({
+      query: input.query,
       scan_interval_minutes: input.scanIntervalMinutes,
       max_runs: input.maxRuns,
       is_active: input.isActive,

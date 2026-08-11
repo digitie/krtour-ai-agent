@@ -5,7 +5,7 @@ export const PLACE_SEARCH_PROVIDER_LABELS: Record<
   PlaceSearchProvider,
   string
 > = {
-  google: "Google Places",
+  google: "Google Maps Places",
   kakao: "Kakao",
   naver: "Naver",
 };

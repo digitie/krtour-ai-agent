@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-08-11: 검색어 반복 수집 수정·삭제와 검수 provider/응답성 보완
+
+- **검색어 반복 작업**: 반복 검색어를 수정할 수 있도록 `SourceTargetUpdate.query`와 수집
+  수정 다이얼로그를 확장했다. 검색어 변경은 watermark·스캔 실패 상태·실행 횟수를
+  초기화하지만, 이미 수집한 동영상·장소·실행 이력은 보존한다. 같은 검색어 중복, 진행 중인
+  기존 검색 실행, 공백 검색어는 안전하게 거부한다.
+- **경합·감사 일관성**: 최초 one-shot harvest에도 `source_target_id`를 기록하고, 수정·삭제·
+  scheduler·`run-now`가 source target 행 잠금을 공유하게 했다. 대상 변경과 감사 로그는 한
+  transaction으로 commit하며, 삭제 표식(`scan_interval_minutes=None`) 대상의 stale
+  `run-now`는 409으로 거부한다. 반복 상한 도달 후 비활성화된 작업의 기존 수동 실행 계약은
+  유지한다.
+- **Google Places 수동 확정**: 정책이 확정되지 않은 Google 결과는 검색·선택은 가능하되,
+  선택 시 `api_source=manual`로 변환하고 Google 원본 evidence, place ID, 주소를 저장하지
+  않는다. Gemini 의견 요청에서도 Google hit을 제외하고 서버도 직접 전송을 필터링한다.
+- **검수 속도**: 장소 검색은 Google/Kakao/Naver 호출을 동시에 시작하되 각 provider의 응답
+  상한을 3초로 제한해 느린 한 곳이 전체 응답을 막지 않으며, timeout이면 나머지 부분 결과를
+  반환한다. 검수 목록의 정확 total은 page query의 window count로 계산해 초기 별도 full scan을
+  제거했다.
+- **검증**: 프런트 단위 테스트 18개 파일·332개, lint, 타입 검사, production build를 통과했다.
+  전용 disposable PostGIS에서 API 59개와 장소 검색·페이지네이션 23개 테스트를 통과시켰다.
+  live E2E·prod 검증은 PR 병합 뒤 n150에서 이어서 수행한다.
+
+---
+
 ## 2026-07-24: 의존성 업데이트 — maplibre-gl 6, react 19.2.8 패치, python-vworld-api pin 갱신 (PR #213)
 
 - **범위**: 사용자 지시로 `maplibre-gl`/`python-vworld-api`/`react`를 최신으로 업데이트. 로드맵

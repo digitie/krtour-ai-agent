@@ -107,6 +107,12 @@ export function ConfirmForm({
               {selectedHit.hit.latitude?.toFixed(5)}, {" "}
               {selectedHit.hit.longitude?.toFixed(5)}
             </span>
+            {selectedHit.hit.provider === "google" ? (
+              <span className="text-warning">
+                Google 결과는 참고용으로만 표시됩니다. 이름과 좌표를 직접 입력해 수동
+                확정하세요.
+              </span>
+            ) : null}
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">

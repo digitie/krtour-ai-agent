@@ -67,9 +67,9 @@ def _hit(
         "latitude": latitude,
         "longitude": longitude,
         "category": category,
-        # T-158(provider 정책) 결정 전에는 Google Places 결과를 영구 저장하거나
-        # VWorld 지도 선택값으로 승격하지 않는다. 프런트 UX용 capability이며
-        # 최종 강제는 place_service.resolve_candidate가 담당한다.
+        # T-158(provider 정책) 결정 전에는 Google Places 결과를 영구 저장하지 않는다.
+        # UI는 검수자의 수동 확정 입력 보조로만 선택을 허용하며, 원본 증거·주소·ID는
+        # resolve payload에서 제거한다. 최종 저장 차단은 place_service가 담당한다.
         "storage_allowed": storage_allowed,
         "storage_block_reason": (
             None

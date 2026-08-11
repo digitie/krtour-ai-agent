@@ -23,6 +23,7 @@ from ktc.models import (
     RunAttention,
     RunSource,
     RunState,
+    SourceTarget,
     SystemSetting,
     TravelPlace,
     VideoPlaceMapping,
@@ -59,6 +60,7 @@ async def main() -> None:
             YoutubeVideo,
             YoutubeChannel,
             CrawlRun,
+            SourceTarget,
             AuditLog,
             SystemSetting,
         ):
@@ -165,6 +167,17 @@ async def main() -> None:
             ),
             finished_at=datetime.now(timezone.utc),
         )
+        keyword_target = SourceTarget(
+            target_type="keyword",
+            source_value="E2E 검색어 수정 전",
+            display_name="E2E 검색어 수정 전",
+            is_active=True,
+            scan_interval_minutes=1440,
+            max_videos=10,
+            max_runs=0,
+            run_count=2,
+            next_crawl_at=datetime.now(timezone.utc),
+        )
         audit = AuditLog(
             actor_type="mcp",
             action="place.correct",
@@ -198,6 +211,7 @@ async def main() -> None:
                 queue_run,
                 failed_run,
                 quota_deferred_run,
+                keyword_target,
                 audit,
                 asset,
                 mapping,

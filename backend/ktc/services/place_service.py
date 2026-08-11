@@ -3123,10 +3123,14 @@ async def list_unmatched_candidates_page(
     else:
         snapshot_id = decoded.snapshot_id
 
-    snapshot_ids = id_stmt.where(ExtractedPlaceCandidate.id <= snapshot_id).subquery()
-    total = int(
-        await session.scalar(select(func.count()).select_from(snapshot_ids)) or 0
+    # Window count는 cursor보다 앞의 snapshot 전체에 적용돼야 한다. outer page에
+    # cursor 조건을 붙여도 `total`은 모든 페이지에서 같은 exact total을 유지한다.
+    snapshot_rows = (
+        id_stmt.where(ExtractedPlaceCandidate.id <= snapshot_id)
+        .add_columns(func.count().over().label("total"))
+        .subquery()
     )
+
     newer_than = 0
     if newer_than_id is not None:
         newer_ids = id_stmt.where(
@@ -3136,7 +3140,10 @@ async def list_unmatched_candidates_page(
             await session.scalar(select(func.count()).select_from(newer_ids)) or 0
         )
 
-    page_stmt = base_stmt.where(ExtractedPlaceCandidate.id <= snapshot_id)
+    page_stmt = base_stmt.join(
+        snapshot_rows,
+        ExtractedPlaceCandidate.id == snapshot_rows.c.id,
+    )
     if decoded is not None:
         cursor_id = decoded.keys[0]
         page_stmt = page_stmt.where(
@@ -3149,11 +3156,16 @@ async def list_unmatched_candidates_page(
         if sort_value is ReviewCandidateSort.NEWEST
         else ExtractedPlaceCandidate.id.asc()
     )
+    # cursor 적용 전 snapshot의 window count를 같은 page query로 가져와, 초기 검수
+    # 화면의 별도 exact total full scan을 없앤다. keyset page/정확 total 계약은 유지한다.
     rows = (
         await session.execute(
-            page_stmt.order_by(order_by).limit(limit + 1)
+            page_stmt.add_columns(snapshot_rows.c.total)
+            .order_by(order_by)
+            .limit(limit + 1)
         )
     ).all()
+    total = int(rows[0].total) if rows else 0
     has_more = len(rows) > limit
     items = [
         CandidateListItem(

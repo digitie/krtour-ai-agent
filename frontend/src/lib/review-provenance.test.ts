@@ -93,6 +93,27 @@ describe("검수 선택 provenance", () => {
     ).toBe(false);
   });
 
+  it("Google 선택은 원본 증거를 남기지 않는 manual 확정으로 변환한다", () => {
+    const input = buildCreatePlaceResolution(
+      {
+        name: "검수자가 확인한 장소",
+        latitude: "37.5",
+        longitude: "127.0",
+        category: "관광명소",
+        categoryCode: "01050100",
+      },
+      {
+        ...selected,
+        hit: { ...kakaoHit, provider: "google", native_id: "google-place-id" },
+      },
+    );
+
+    expect(input.apiSource).toBe("manual");
+    expect(input.selectedHit).toBeUndefined();
+    expect(input.officialAddress).toBeUndefined();
+    expect(input.roadAddress).toBeUndefined();
+  });
+
   it("409 nearby detail을 사용자 선택 후보로 보존한다", () => {
     const error = new ApiRequestError(
       409,

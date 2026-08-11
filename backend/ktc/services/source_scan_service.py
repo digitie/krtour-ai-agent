@@ -7,17 +7,30 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ktc.models import CrawlRun, RunSource, RunState, SourceTarget, TargetType, utcnow
 from ktc.services import crawl_run_service
 
-
 ACTIVE_RUN_STATES = (RunState.PENDING, RunState.RUNNING)
+
+
+class SourceTargetConflictError(ValueError):
+    """반복 수집 대상을 다른 대상으로 바꿀 수 없을 때 사용한다."""
+
+
+class SourceTargetActiveRunError(ValueError):
+    """현재 대상에서 시작한 실행이 끝나기 전에는 검색어를 바꿀 수 없다."""
+
+
+class SourceTargetDeletedError(ValueError):
+    """삭제된 반복 수집 대상으로 실행을 요청했을 때 사용한다."""
 
 
 def _as_utc(value: datetime | None) -> datetime:
@@ -155,7 +168,22 @@ async def scan_due_targets(
     failed = 0
     target_summaries: list[dict[str, Any]] = []
 
-    for target in due_targets:
+    for listed_target in due_targets:
+        # 검색어 수정/삭제와 같은 사용자 mutation과 같은 행을 잠가, 목록을 읽은 뒤
+        # 과거 source_value로 follow-up run을 발급하는 경쟁을 막는다.
+        target = (
+            await session.execute(
+                select(SourceTarget)
+                .where(
+                    SourceTarget.id == listed_target.id,
+                    SourceTarget.is_active.is_(True),
+                )
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        ).scalar_one_or_none()
+        if target is None:
+            continue
         target.last_scan_at = scan_now
         try:
             job_type, target_type, target_id, payload = build_followup_run(
@@ -256,6 +284,7 @@ async def upsert_recurring_target(
     max_videos: int | None = None,
     default_category_code: str | None = None,
     now: datetime | None = None,
+    commit: bool = True,
 ) -> SourceTarget:
     """반복 수집 대상을 등록/갱신한다.
 
@@ -268,7 +297,7 @@ async def upsert_recurring_target(
     stmt = select(SourceTarget).where(
         SourceTarget.target_type == target_type,
         SourceTarget.source_value == source_value,
-    )
+    ).with_for_update()
     result = await session.execute(stmt)
     target = result.scalar_one_or_none()
     if target is None:
@@ -290,8 +319,13 @@ async def upsert_recurring_target(
     target.next_crawl_at = scan_now + timedelta(minutes=interval)
     target.scan_failure_count = 0
     target.last_scan_error = None
-    await session.commit()
-    await session.refresh(target)
+    if commit:
+        await session.commit()
+        await session.refresh(target)
+    else:
+        # 최초 harvest의 payload에 source_target_id를 남길 수 있도록 새 행의 ID를
+        # 같은 transaction 안에서 확보한다.
+        await session.flush()
     return target
 
 
@@ -313,22 +347,99 @@ async def update_recurring_target(
     session: AsyncSession,
     target_id: int,
     *,
+    query: str | None = None,
     scan_interval_minutes: int | None = None,
     max_runs: int | None = None,
     is_active: bool | None = None,
     max_videos: int | None = None,
     default_category_code: str | None = None,
     now: datetime | None = None,
+    commit: bool = True,
 ) -> SourceTarget | None:
-    """반복 수집 대상의 주기/횟수/활성 여부/수집개수를 수정한다(제공된 필드만 갱신)."""
-    target = await session.get(SourceTarget, target_id)
+    """반복 수집 대상의 검색어·주기·횟수·활성 여부·수집개수를 수정한다.
+
+    검색어 변경은 이전 검색의 watermark/실행 횟수를 재사용하면 증분 수집을 잘못
+    건너뛸 수 있으므로 새 검색의 첫 실행처럼 초기화한다. 이미 발급된 crawl run의
+    입력은 불변이어야 하므로, 이 대상에서 시작한 실행이 남아 있으면 변경을 막는다.
+    """
+    target = (
+        await session.execute(
+            select(SourceTarget)
+            .where(SourceTarget.id == target_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
     if target is None:
         return None
     scan_now = _as_utc(now)
+
+    normalized_query = query.strip() if query is not None else None
+    query_changed = (
+        normalized_query is not None and normalized_query != target.source_value
+    )
+    if query_changed:
+        if target.target_type != TargetType.KEYWORD:
+            raise SourceTargetConflictError("검색어 수집 작업만 검색어를 수정할 수 있습니다")
+
+        duplicate = (
+            await session.execute(
+                select(SourceTarget.id).where(
+                    SourceTarget.target_type == TargetType.KEYWORD,
+                    SourceTarget.source_value == normalized_query,
+                    SourceTarget.id != target.id,
+                )
+            )
+        ).scalar_one_or_none()
+        if duplicate is not None:
+            raise SourceTargetConflictError("같은 검색어의 수집 작업이 이미 있습니다")
+
+        active_runs = (
+            await session.execute(
+                select(CrawlRun).where(
+                    CrawlRun.target_type == TargetType.KEYWORD,
+                    CrawlRun.target_id == target.source_value,
+                    CrawlRun.state.in_(ACTIVE_RUN_STATES),
+                )
+            )
+        ).scalars()
+        for run in active_runs:
+            try:
+                run_payload = json.loads(run.payload_json or "{}")
+            except json.JSONDecodeError:
+                run_payload = None
+            # 배포 전 생성된 최초 반복 harvest에는 source_target_id가 없었다. 반복
+            # 설정값으로만 구분해, 같은 검색어의 무관한 one-shot은 수정 차단에서 제외한다.
+            is_target_run = isinstance(run_payload, dict) and (
+                run_payload.get("source_target_id") == target.id
+                or (
+                    run_payload.get("source_target_id") is None
+                    and run_payload.get("repeat_interval_minutes")
+                )
+            )
+            if is_target_run:
+                raise SourceTargetActiveRunError(
+                    "진행 중인 수집이 끝나거나 중지된 뒤 검색어를 수정할 수 있습니다"
+                )
+
+        target.source_value = normalized_query
+        # 검색어 수집 대상에는 별도 표시명 편집 기능이 없으므로 새 검색어를 함께 표시한다.
+        target.display_name = normalized_query
+        target.last_crawled_at = None
+        target.last_seen_cursor = None
+        target.last_seen_video_published_at = None
+        target.last_scan_at = None
+        target.scan_failure_count = 0
+        target.last_scan_error = None
+        target.run_count = 0
     if scan_interval_minutes is not None:
         interval = max(1, int(scan_interval_minutes))
         target.scan_interval_minutes = interval
         target.next_crawl_at = scan_now + timedelta(minutes=interval)
+    elif query_changed and target.scan_interval_minutes:
+        target.next_crawl_at = scan_now + timedelta(
+            minutes=max(1, int(target.scan_interval_minutes))
+        )
     if max_runs is not None:
         target.max_runs = max(0, int(max_runs))
     if max_videos is not None:
@@ -349,22 +460,42 @@ async def update_recurring_target(
             target.next_crawl_at = scan_now + timedelta(
                 minutes=max(1, int(target.scan_interval_minutes))
             )
-    await session.commit()
-    await session.refresh(target)
+    try:
+        if commit:
+            await session.commit()
+        else:
+            await session.flush()
+    except IntegrityError as exc:
+        await session.rollback()
+        if query_changed:
+            raise SourceTargetConflictError("같은 검색어의 수집 작업이 이미 있습니다") from exc
+        raise
+    if commit:
+        await session.refresh(target)
     return target
 
 
 async def deactivate_target(
-    session: AsyncSession, target_id: int
+    session: AsyncSession, target_id: int, *, commit: bool = True
 ) -> SourceTarget | None:
     """반복 수집 대상을 비활성화한다(watermark `last_crawled_at`은 보존)."""
-    target = await session.get(SourceTarget, target_id)
+    target = (
+        await session.execute(
+            select(SourceTarget)
+            .where(SourceTarget.id == target_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
     if target is None:
         return None
     target.is_active = False
     target.scan_interval_minutes = None
     target.next_crawl_at = None
-    await session.commit()
+    if commit:
+        await session.commit()
+    else:
+        await session.flush()
     return target
 
 
@@ -375,6 +506,7 @@ async def run_target_now(
     now: datetime | None = None,
     max_videos: int = 20,
     force: bool = False,
+    commit: bool = True,
 ) -> tuple[SourceTarget | None, CrawlRun | None, bool]:
     """반복 대상을 즉시 1회 enqueue한다('지금 진행' / '강제 재실행').
 
@@ -386,9 +518,20 @@ async def run_target_now(
     후처리가 대상의 미완료 영상을 재처리하도록 payload에 force 플래그를 넣는다.
     반환값: (target, run, created).
     """
-    target = await session.get(SourceTarget, target_id)
+    target = (
+        await session.execute(
+            select(SourceTarget)
+            .where(SourceTarget.id == target_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
     if target is None:
         return None, None, False
+    # 삭제는 is_active만으로 구분하지 않는다. max_runs 도달 후 비활성화된 대상은
+    # 기존 계약대로 수동 실행할 수 있지만, 삭제된 대상은 scan 간격을 제거한다.
+    if target.scan_interval_minutes is None:
+        raise SourceTargetDeletedError("삭제된 반복 수집 작업은 실행할 수 없습니다")
 
     scan_now = _as_utc(now)
     target.last_scan_at = scan_now
@@ -419,7 +562,10 @@ async def run_target_now(
                 .limit(1)
             )
         ).scalars().first()
-        await session.commit()
+        if commit:
+            await session.commit()
+        else:
+            await session.flush()
         return target, existing, False
 
     # '지금 진행'/강제 재실행(run-now)은 사용자 트리거지만 수집 성격이라 배치 레인
@@ -444,8 +590,11 @@ async def run_target_now(
     if target.max_runs and target.run_count >= target.max_runs:
         target.is_active = False
         target.next_crawl_at = None
-    await session.commit()
-    await session.refresh(run)
+    if commit:
+        await session.commit()
+        await session.refresh(run)
+    else:
+        await session.flush()
     return target, run, True
 
 

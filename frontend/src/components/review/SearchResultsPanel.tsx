@@ -8,7 +8,10 @@ import type {
   PlaceSearchHit,
   PlaceSearchResult,
 } from "@/lib/api";
-import { placeHitStorageBlockReason } from "@/lib/review-provenance";
+import {
+  isPlaceHitSelectable,
+  placeHitStorageBlockReason,
+} from "@/lib/review-provenance";
 import { searchHitShortcutNumber } from "@/components/review/searchHitNumber";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -181,8 +184,8 @@ function ProviderSection({
       ) : (
         hits.map((hit, index) => {
           const hasCoords = hit.latitude != null && hit.longitude != null;
-          const storageBlockReason = placeHitStorageBlockReason(hit);
-          const selectable = hasCoords && storageBlockReason == null;
+          const selectionNotice = placeHitStorageBlockReason(hit);
+          const selectable = hasCoords && isPlaceHitSelectable(hit);
           const isSelected = selectedHit === hit;
           // 서수는 선택 가능 hit(orderedHits, 좌표+저장 허용) reference 순서를 단일
           // 출처로 쓴다. 키보드 1–9·지도 번호와 동일 순서/번호이며, 선택 불가 행에는
@@ -199,7 +202,7 @@ function ProviderSection({
               disabled={!selectable}
               aria-pressed={isSelected}
               aria-keyshortcuts={shortcutNumber ? String(shortcutNumber) : undefined}
-              title={storageBlockReason ?? undefined}
+              title={selectionNotice ?? undefined}
               onClick={() => onSelect(hit)}
               className="flex flex-col gap-0.5 rounded-lg border p-2 text-left text-xs transition-colors hover:border-primary hover:bg-muted aria-pressed:border-primary aria-pressed:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -229,8 +232,8 @@ function ProviderSection({
                   ? `${hit.latitude!.toFixed(5)}, ${hit.longitude!.toFixed(5)}`
                   : "좌표 없음(선택 불가)"}
               </span>
-              {storageBlockReason ? (
-                <span className="text-warning">{storageBlockReason}</span>
+              {selectionNotice ? (
+                <span className="text-warning">{selectionNotice}</span>
               ) : null}
             </button>
           );

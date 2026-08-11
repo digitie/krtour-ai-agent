@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import {
+  ApiRequestError,
   deleteSourceTarget,
   listRunQueue,
   listSourceTargets,
@@ -61,6 +62,7 @@ export function CollectWorkspace() {
     null,
   );
   const [editTarget, setEditTarget] = useState<SourceTargetSummary | null>(null);
+  const [targetActionError, setTargetActionError] = useState<string | null>(null);
 
   const runQueueQuery = useQuery({
     queryKey: RUN_QUEUE_QUERY_KEY,
@@ -83,8 +85,22 @@ export function CollectWorkspace() {
   });
   const deleteTargetMutation = useMutation({
     mutationFn: deleteSourceTarget,
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["source-targets"] }),
+    onMutate: () => setTargetActionError(null),
+    onSuccess: (_, targetId) => {
+      if (detailTarget?.id === targetId) setDetailTarget(null);
+      if (editTarget?.id === targetId) setEditTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["source-targets"] });
+    },
+    onError: (error, targetId) => {
+      setTargetActionError(error.message);
+      // 다른 탭/사용자가 먼저 삭제한 404는 실패가 아니라 목록이 이미 바뀐 상태다.
+      // 다음 15초 polling을 기다리지 않고 현재 모달과 캐시를 즉시 정리한다.
+      if (error instanceof ApiRequestError && error.status === 404) {
+        if (detailTarget?.id === targetId) setDetailTarget(null);
+        if (editTarget?.id === targetId) setEditTarget(null);
+        queryClient.invalidateQueries({ queryKey: ["source-targets"] });
+      }
+    },
   });
   const runNowMutation = useMutation({
     mutationFn: ({ id, force }: { id: number; force: boolean }) =>
@@ -144,7 +160,7 @@ export function CollectWorkspace() {
       <div className="min-h-0 flex-1 overflow-hidden">
         <JobsPanel
           targets={sourceTargetsQuery.data ?? []}
-          errorMessage={sourceTargetsQuery.error?.message ?? null}
+          errorMessage={targetActionError ?? sourceTargetsQuery.error?.message ?? null}
           onRunNow={(id, force) => runNowMutation.mutate({ id, force })}
           onDetailTarget={setDetailTarget}
           onEditTarget={setEditTarget}

@@ -26,7 +26,7 @@ function hit(
 }
 
 describe("selectableSearchHits", () => {
-  it("좌표 없는 hit과 저장 불가(google/미허용) hit을 제외하고 순서를 유지한다", () => {
+  it("좌표 없는 hit과 저장 불가 hit을 제외하고 Google 수동 확정을 포함한다", () => {
     const withCoords1 = hit("좌표1");
     const noCoords = hit("좌표없음", { latitude: null, longitude: null });
     const google = hit("구글", { provider: "google" as PlaceSearchProvider });
@@ -34,7 +34,7 @@ describe("selectableSearchHits", () => {
     const withCoords2 = hit("좌표2");
     const all = [withCoords1, noCoords, google, notAllowed, withCoords2];
 
-    expect(selectableSearchHits(all)).toEqual([withCoords1, withCoords2]);
+    expect(selectableSearchHits(all)).toEqual([withCoords1, google, withCoords2]);
   });
 });
 
