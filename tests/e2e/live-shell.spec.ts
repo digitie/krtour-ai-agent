@@ -177,7 +177,7 @@ test.describe('n150 live UI 셸 검증', () => {
     await expect(firstRow).toHaveAttribute('data-state', 'selected');
     await expect(page.getByRole('button', { name: '검색', exact: true })).toBeVisible();
     await expect(page.getByText('확정 정보')).toBeVisible();
-    await expect(page.getByText('Google Places', { exact: true })).toBeVisible();
+    await expect(page.getByText('Google Maps Places', { exact: true })).toBeVisible();
     await expect(page.getByText('Kakao', { exact: true })).toBeVisible();
     await expect(page.getByText('Naver', { exact: true })).toBeVisible();
     await expect(page.locator('.maplibregl-map')).toBeVisible();
