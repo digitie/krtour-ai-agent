@@ -164,11 +164,14 @@ test.describe('n150 live UI 셸 검증', () => {
     await expect(page.getByRole('columnheader', { name: '상태', exact: true })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: '액션', exact: true })).toBeVisible();
 
+    const bulkTools = page.getByRole('region', { name: '일괄 검수 도구' });
     await firstRow.getByRole('checkbox').check();
-    await expect(page.getByText('후보 1개 선택됨')).toBeVisible();
+    await expect(bulkTools.getByRole('status')).toHaveText('현재 후보 1건 선택됨');
     await expect(page.getByRole('button', { name: '선택 삭제' })).toBeVisible();
     await page.getByRole('button', { name: '선택 해제' }).click();
-    await expect(page.getByText('후보 1개 선택됨')).toHaveCount(0);
+    await expect(bulkTools.getByRole('status')).toHaveText(
+      '후보를 선택하면 일괄 처리할 수 있습니다.',
+    );
 
     await firstRow.locator('td').nth(3).click();
     await expect(firstRow).toHaveAttribute('data-state', 'selected');
