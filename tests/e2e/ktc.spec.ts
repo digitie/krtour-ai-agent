@@ -101,6 +101,57 @@ test.describe('Kor Travel Concierge E2E 검증', () => {
     expectRelevantConsoleErrors(errors).toEqual([]);
   });
 
+  test('반복 검색어 수집 작업은 검색어를 수정하고 목록에서 삭제할 수 있다', async ({ page }) => {
+    const errors = collectConsoleErrors(page);
+    await loginAsAdmin(page, '/collect');
+
+    const jobsRegion = page.getByRole('region', { name: '반복 작업' });
+    const originalRow = jobsRegion.getByRole('row', {
+      name: /E2E 검색어 수정 전/,
+    });
+    await expect(originalRow).toBeVisible();
+
+    await originalRow.getByRole('button', { name: '수정' }).click();
+    const editDialog = page.getByRole('dialog');
+    const queryInput = editDialog.locator('#recurring-edit-query');
+    await expect(queryInput).toHaveValue('E2E 검색어 수정 전');
+    await queryInput.fill('E2E 검색어 수정 후');
+
+    const updateResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v1/source-targets/') &&
+        response.request().method() === 'PATCH',
+    );
+    await editDialog.getByRole('button', { name: '저장' }).click();
+    expect((await updateResponse).ok()).toBeTruthy();
+    await expect(editDialog).toHaveCount(0);
+
+    const updatedRow = jobsRegion.getByRole('row', {
+      name: /E2E 검색어 수정 후/,
+    });
+    await expect(updatedRow).toBeVisible();
+    await updatedRow
+      .getByRole('button', { name: 'E2E 검색어 수정 후 반복 삭제' })
+      .click();
+    const confirmDialog = page.getByRole('alertdialog');
+    await expect(
+      confirmDialog.getByRole('heading', {
+        name: 'E2E 검색어 수정 후 반복 작업을 삭제할까요?',
+      }),
+    ).toBeVisible();
+
+    const deleteResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v1/source-targets/') &&
+        response.request().method() === 'DELETE',
+    );
+    await confirmDialog.getByRole('button', { name: '삭제' }).click();
+    expect((await deleteResponse).ok()).toBeTruthy();
+    await expect(updatedRow).toHaveCount(0);
+
+    expectRelevantConsoleErrors(errors).toEqual([]);
+  });
+
   test('작업 상태는 단일 큐 요청으로 실행·대기·확인 필요 수를 공유한다', async ({
     page,
   }) => {

@@ -60,7 +60,7 @@ import {
 import { formatDateTimeShort, youtubeWatchUrl } from "@/lib/format";
 import {
   buildCreatePlaceResolution,
-  isPlaceHitStorageAllowed,
+  isPlaceHitSelectable,
   parseNearbyPlaceConflict,
   type NearbyPlaceCandidate,
   type ReviewResolutionForm,
@@ -864,6 +864,7 @@ export function ReviewWorkspace() {
     searchQuery,
     result,
     allHits,
+    opinionHits,
     opinionRequested,
     opinionQuery,
     opinionResult,
@@ -1887,7 +1888,7 @@ export function ReviewWorkspace() {
   });
 
   function selectHit(hit: PlaceSearchHit) {
-    if (!selected || !isPlaceHitStorageAllowed(hit)) return;
+    if (!selected || !isPlaceHitSelectable(hit)) return;
     cancelCategoryMatch();
     const candidateId = selected.id;
     const nextSelectedHit: SelectedPlaceHit = {
@@ -1900,15 +1901,27 @@ export function ReviewWorkspace() {
     setSelectedHit(nextSelectedHit);
     setNearbyConflict(null);
     setFormCandidateId(candidateId);
-    setForm((prev) => ({
-      ...prev,
-      name: hit.name,
-      latitude: hit.latitude == null ? "" : String(hit.latitude),
-      longitude: hit.longitude == null ? "" : String(hit.longitude),
-    }));
+    const isGoogleManualSelection = hit.provider === "google";
+    setForm((prev) =>
+      isGoogleManualSelection
+        ? {
+            ...prev,
+            // Google 원본은 표시만 하고 저장하지 않는다. 이전 선택값도 남기지 않아
+            // 검수자가 이름·좌표를 독립적으로 입력한 manual 값만 확정할 수 있다.
+            name: "",
+            latitude: "",
+            longitude: "",
+          }
+        : {
+            ...prev,
+            name: hit.name,
+            latitude: hit.latitude == null ? "" : String(hit.latitude),
+            longitude: hit.longitude == null ? "" : String(hit.longitude),
+          },
+    );
     // 검색결과 카테고리 매칭이 되면 그 값을 쓰고, 실패하면 후보의 기본 카테고리를 유지한다.
     // 사용자가 드롭다운을 직접 바꾼 뒤에는 자동 매칭으로 덮어쓰지 않는다.
-    if (hit.category && !categoryEdited) {
+    if (!isGoogleManualSelection && hit.category && !categoryEdited) {
       const controller = new AbortController();
       categoryMatchAbortRef.current = controller;
       const requestId = ++categoryMatchRequestRef.current;
@@ -1954,7 +1967,7 @@ export function ReviewWorkspace() {
 
   const activeSelectedHit =
     selectedHit?.candidateId === selected?.id ? selectedHit : null;
-  // 선택 가능 hit(저장 허용 + 좌표 존재)만 렌더 순서대로 모은 단일 정본. 키보드 1–9,
+  // 선택 가능 hit(저장 허용 또는 Google 수동 확정 + 좌표 존재)만 렌더 순서대로 모은 단일 정본. 키보드 1–9,
   // 행 번호 배지, 지도 번호가 모두 이 배열의 같은 index+1을 쓴다(T-187 정합).
   const selectableHits = useMemo(() => selectableSearchHits(allHits), [allHits]);
   const mapHitEntries = useMemo(
@@ -2799,7 +2812,7 @@ export function ReviewWorkspace() {
     formCandidateId === selected.id &&
     Boolean(form.name.trim()) &&
     coordsFilled &&
-    (activeSelectedHit == null || isPlaceHitStorageAllowed(activeSelectedHit.hit));
+    (activeSelectedHit == null || isPlaceHitSelectable(activeSelectedHit.hit));
   const candidateAdvancePending = pendingCandidateAdvance != null;
   const candidateAdvanceError =
     candidateAdvancePending
@@ -3839,7 +3852,7 @@ export function ReviewWorkspace() {
                 activeQuery={activeQuery}
                 result={result}
                 loading={searchQuery.isFetching}
-                selectableHitCount={allHits.length}
+                selectableHitCount={opinionHits.length}
                 orderedHits={selectableHits}
                 selectedHit={activeSelectedHit?.hit ?? null}
                 opinionRequested={opinionRequested}
@@ -4383,4 +4396,3 @@ function groupDimLabel(dim: DestinationGroupDim) {
   if (dim === "keyword") return "검색어별";
   return "전체";
 }
-

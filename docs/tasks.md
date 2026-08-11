@@ -27,6 +27,13 @@
 
 ## 완료
 
+- [x] **검색어 반복 수집 수정·삭제 및 검수 응답성 개선**: 반복 검색어를 수정할 수 있는
+  `PATCH /source-targets/{id}`·수정 다이얼로그를 추가하고, 삭제는 watermark·수집 이력은
+  보존한 논리 삭제로 유지했다. 수정/삭제/즉시 실행과 감사 로그를 같은 transaction으로
+  묶고, 삭제한 작업의 stale `run-now`·스케줄러 경쟁을 차단했다. Google Places 결과는
+  원본 evidence·주소·ID를 저장하거나 Gemini에 넘기지 않는 `manual` 확정으로만 선택할 수
+  있게 했으며, provider별 3초 deadline·부분 결과 반환과 검수 목록 total full scan 제거로
+  검수 지연을 줄였다. (2026-08-11)
 - [x] **의존성 업데이트**: maplibre-gl 5→6(MAJOR, ESM-only 마이그레이션), react/react-dom
   19.2.8 패치, python-vworld-api pin 최신화(PR #213). 로드맵 T-번호 없이 사용자 지시로 착수한
   유지보수 작업. 2렌즈 적대적 리뷰에서 확정 결함 1건(Dockerfile Node 20 vs maplibre-gl 6 전이
@@ -677,4 +684,3 @@
 - 결정 기록: `docs/decisions.md`
 - 작업 일지: `docs/journal.md`
 - 개발 환경: `docs/dev-environment.md`
-

@@ -18,6 +18,7 @@ import {
   candidateProviderQueryKey,
   candidateProviderResponseMatches,
   candidateSearchReducer,
+  collectCandidateOpinionHits,
   collectCandidateSearchHits,
   runCandidateOpinionSearch,
   runCandidateProviderSearch,
@@ -363,7 +364,7 @@ describe("provider response와 Gemini opinion 결합", () => {
     );
   });
 
-  it("저장 허용 allHits만 exact fingerprint로 opinion 요청에 결합한다(Google은 저장 정책상 제외)", async () => {
+  it("Google은 수동 선택 목록에 보이되 Gemini opinion 요청에서는 제외한다", async () => {
     const allowedGoogle = hit("google", "허용 Google");
     const blockedKakao = hit("kakao", "차단 Kakao", false);
     const allowedNaver = hit("naver", "허용 Naver");
@@ -373,9 +374,9 @@ describe("provider response와 Gemini opinion 결합", () => {
       naver: [allowedNaver],
     });
     const allHits = collectCandidateSearchHits(result, true);
-    // isPlaceHitStorageAllowed(storage_allowed && provider!=="google")로 Google은
-    // storage_allowed=true여도 저장 정책상 제외된다(origin/main page.tsx allHits 보존).
-    expect(allHits).toEqual([allowedNaver]);
+    const opinionHits = collectCandidateOpinionHits(allHits);
+    expect(allHits).toEqual([allowedGoogle, allowedNaver]);
+    expect(opinionHits).toEqual([allowedNaver]);
 
     let state = runManual(
       INITIAL_CANDIDATE_SEARCH_STATE,
@@ -385,7 +386,7 @@ describe("provider response와 Gemini opinion 결합", () => {
     state = candidateSearchReducer(state, {
       type: "request_opinion",
       activation: state.active,
-      hitCount: allHits.length,
+      hitCount: opinionHits.length,
     });
     expect(state.opinionRequested).toBe(true);
     expect(
@@ -393,7 +394,7 @@ describe("provider response와 Gemini opinion 결합", () => {
         true,
         state.active,
         state.opinionRequested,
-        allHits,
+        opinionHits,
       ),
     ).toBe(true);
 
@@ -406,20 +407,20 @@ describe("provider response와 Gemini opinion 결합", () => {
       state.active,
       true,
       state.opinionRequested,
-      allHits,
+      opinionHits,
       opinion,
       signal,
     );
 
-    expect(opinion).toHaveBeenCalledWith("제주 카페", allHits, signal);
-    expect(candidateOpinionResponseMatches(response, state.active, allHits)).toBe(
+    expect(opinion).toHaveBeenCalledWith("제주 카페", opinionHits, signal);
+    expect(candidateOpinionResponseMatches(response, state.active, opinionHits)).toBe(
       true,
     );
     expect(
-      candidateOpinionResponseMatches(response, state.active, [allowedGoogle]),
+      candidateOpinionResponseMatches(response, state.active, allHits),
     ).toBe(false);
-    expect(candidateOpinionQueryKey(state.active, allHits).at(-1)).not.toBe(
-      candidateOpinionQueryKey(state.active, [allowedGoogle]).at(-1),
+    expect(candidateOpinionQueryKey(state.active, opinionHits).at(-1)).not.toBe(
+      candidateOpinionQueryKey(state.active, allHits).at(-1),
     );
   });
 

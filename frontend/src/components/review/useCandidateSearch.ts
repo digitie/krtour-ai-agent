@@ -20,7 +20,10 @@ import {
   type PlaceSearchHit,
   type PlaceSearchResult,
 } from "@/lib/api";
-import { isPlaceHitStorageAllowed } from "@/lib/review-provenance";
+import {
+  isPlaceHitSelectable,
+  isPlaceHitStorageAllowed,
+} from "@/lib/review-provenance";
 
 export const CANDIDATE_SEARCH_DEBOUNCE_MS = 300;
 export const CANDIDATE_PROVIDER_QUERY_ROOT = ["place-search"] as const;
@@ -285,8 +288,15 @@ export function collectCandidateSearchHits(
 ): PlaceSearchHit[] {
   if (!enabled || !result) return [];
   return [...result.google, ...result.kakao, ...result.naver].filter(
-    isPlaceHitStorageAllowed,
+    isPlaceHitSelectable,
   );
+}
+
+/** Google 원본은 Gemini 요청에도 넘기지 않는다. */
+export function collectCandidateOpinionHits(
+  hits: readonly PlaceSearchHit[],
+): PlaceSearchHit[] {
+  return hits.filter(isPlaceHitStorageAllowed);
 }
 
 export function candidateOpinionHitsFingerprint(
@@ -501,31 +511,32 @@ export function useCandidateSearch({
     () => collectCandidateSearchHits(result, providerEnabled),
     [providerEnabled, result],
   );
+  const opinionHits = useMemo(() => collectCandidateOpinionHits(allHits), [allHits]);
 
   const requestOpinion = useCallback((): boolean => {
-    if (!active || !enabled || allHits.length === 0) return false;
+    if (!active || !enabled || opinionHits.length === 0) return false;
     dispatch({
       type: "request_opinion",
       activation: active,
-      hitCount: allHits.length,
+      hitCount: opinionHits.length,
     });
     return true;
-  }, [active, allHits.length, enabled]);
+  }, [active, enabled, opinionHits.length]);
 
   const opinionEnabled = candidateOpinionQueryEnabled(
     enabled,
     active,
     state.opinionRequested,
-    allHits,
+    opinionHits,
   );
   const opinionQuery = useQuery({
-    queryKey: candidateOpinionQueryKey(active, allHits),
+    queryKey: candidateOpinionQueryKey(active, opinionHits),
     queryFn: ({ signal }) =>
       runCandidateOpinionSearch(
         active,
         enabled,
         state.opinionRequested,
-        allHits,
+        opinionHits,
         searchOpinion,
         signal,
       ),
@@ -535,7 +546,7 @@ export function useCandidateSearch({
   const opinionResult = candidateOpinionResponseMatches(
     currentOpinionResponse,
     active,
-    allHits,
+    opinionHits,
   )
     ? currentOpinionResponse.result
     : null;
@@ -549,6 +560,7 @@ export function useCandidateSearch({
     searchQuery,
     result,
     allHits,
+    opinionHits,
     opinionRequested: state.opinionRequested,
     opinionQuery,
     opinionResult,

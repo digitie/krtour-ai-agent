@@ -37,9 +37,18 @@ export function isPlaceHitStorageAllowed(hit: PlaceSearchHit): boolean {
   return hit.storage_allowed === true && hit.provider !== "google";
 }
 
+/**
+ * Google Places는 원본 증거를 저장할 수 없지만, 검수자가 값을 확인해 수동 확정하는
+ * 입력 보조로는 선택할 수 있다. 이 경로는 `buildCreatePlaceResolution`에서 provider
+ * 증거·주소를 제거하고 api_source를 manual로 바꾼다.
+ */
+export function isPlaceHitSelectable(hit: PlaceSearchHit): boolean {
+  return hit.provider === "google" || isPlaceHitStorageAllowed(hit);
+}
+
 export function placeHitStorageBlockReason(hit: PlaceSearchHit): string | null {
   if (hit.provider === "google") {
-    return hit.storage_block_reason ?? "정책 결정 전에는 Google 결과를 저장할 수 없습니다.";
+    return "Google 원본·ID·주소는 저장하지 않고, 검수자가 확인한 수동 값으로만 확정합니다.";
   }
   return hit.storage_allowed ? null : hit.storage_block_reason ?? "저장이 허용되지 않은 결과입니다.";
 }
@@ -70,17 +79,21 @@ export function buildCreatePlaceResolution(
     placeId?: number;
   },
 ): Omit<ResolveCandidateInput, "expectedRevision" | "clientOperationId"> {
+  const googleManualSelection = selected?.hit.provider === "google";
   return {
     action: "create_place",
     correctedName: form.name,
     latitude: Number(form.latitude),
     longitude: Number(form.longitude),
-    officialAddress: selected?.hit.address ?? undefined,
-    roadAddress: selected?.hit.road_address ?? undefined,
+    officialAddress: googleManualSelection ? undefined : selected?.hit.address ?? undefined,
+    roadAddress: googleManualSelection
+      ? undefined
+      : selected?.hit.road_address ?? undefined,
     category: form.category || undefined,
     categoryCode: form.categoryCode || undefined,
-    apiSource: selected?.hit.provider ?? "manual",
-    selectedHit: selected ? selectedHitEvidence(selected) : undefined,
+    apiSource: googleManualSelection ? "manual" : selected?.hit.provider ?? "manual",
+    selectedHit:
+      selected && !googleManualSelection ? selectedHitEvidence(selected) : undefined,
     duplicateResolution: duplicate?.resolution,
     duplicatePlaceId: duplicate?.placeId,
   };

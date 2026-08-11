@@ -1,8 +1,9 @@
 import type { PlaceSearchHit } from "@/lib/api";
-import { isPlaceHitStorageAllowed } from "@/lib/review-provenance";
+import { isPlaceHitSelectable } from "@/lib/review-provenance";
 
 /**
- * 선택 가능 hit(저장 허용 + 좌표 존재)만 렌더 순서대로 모은 단일 정본(T-187).
+ * 선택 가능 hit(저장 허용 또는 Google 수동 확정 + 좌표 존재)만 렌더 순서대로 모은
+ * 단일 정본(T-187).
  * 키보드 1–9, 행 번호 배지, 지도 번호가 모두 이 배열의 같은 index를 쓴다 —
  * 세 표면이 항상 같은 순서/번호가 되도록 여기에서만 selectable을 판정한다.
  */
@@ -11,7 +12,7 @@ export function selectableSearchHits(
 ): PlaceSearchHit[] {
   return allHits.filter(
     (hit) =>
-      isPlaceHitStorageAllowed(hit) &&
+      isPlaceHitSelectable(hit) &&
       hit.latitude != null &&
       hit.longitude != null,
   );

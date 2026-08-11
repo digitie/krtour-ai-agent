@@ -473,6 +473,23 @@ async def start_harvest(
     if canonical_video:
         run_payload["video_ids"] = [canonical_video]
 
+    # 단일 영상은 반복 대상 등록을 생략한다(영상 자체는 변하지 않음).
+    if payload.repeat_interval_minutes and target_type != "video":
+        recurring_target = await source_scan_service.upsert_recurring_target(
+            session,
+            target_type=target_type,
+            source_value=target_id,
+            display_name=target_id,
+            scan_interval_minutes=payload.repeat_interval_minutes,
+            max_runs=payload.repeat_max_runs or 0,
+            max_videos=payload.max_videos,
+            default_category_code=default_category_code,
+            commit=False,
+        )
+        # 초기 one-shot과 이후 예약 실행을 같은 반복 대상으로 추적한다. 검색어가
+        # 수정될 때 오래된 실행을 안전하게 식별하는 데도 쓴다.
+        run_payload["source_target_id"] = recurring_target.id
+
     # 수집(harvest)은 대량 배치 성격이라 기본 lane(batch)을 쓴다(T-163). 사용자
     # 트리거지만 대화형 레인을 점유시키지 않는다.
     run = await crawl_run_service.create_run(
@@ -484,18 +501,6 @@ async def start_harvest(
         payload=run_payload,
         commit=False,
     )
-    # 단일 영상은 반복 대상 등록을 생략한다(영상 자체는 변하지 않음).
-    if payload.repeat_interval_minutes and target_type != "video":
-        await source_scan_service.upsert_recurring_target(
-            session,
-            target_type=target_type,
-            source_value=target_id,
-            display_name=target_id,
-            scan_interval_minutes=payload.repeat_interval_minutes,
-            max_runs=payload.repeat_max_runs or 0,
-            max_videos=payload.max_videos,
-            default_category_code=default_category_code,
-        )
     await audit_service.record(
         session,
         actor_type="web",
@@ -940,9 +945,12 @@ async def list_run_queue(
     }
 
 
+PLACE_SEARCH_PROVIDER_TIMEOUT_SECONDS = 3.0
+
+
 @router.get("/place-search")
 async def place_search_endpoint(
-    q: str = Query(..., min_length=1),
+    q: str = Query(..., min_length=1, max_length=255),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     """검수용 멀티 provider 장소 검색(Google/Kakao/Naver) — provider 결과만 즉시 반환.
@@ -962,7 +970,7 @@ async def place_search_endpoint(
     )
     errors: dict[str, str] = {}
 
-    async with httpx.AsyncClient(timeout=8.0) as client:
+    async with httpx.AsyncClient(timeout=PLACE_SEARCH_PROVIDER_TIMEOUT_SECONDS) as client:
 
         async def google() -> list[dict[str, Any]]:
             if not google_key:
@@ -988,9 +996,24 @@ async def place_search_endpoint(
                 client_secret=naver_secret,
             )
 
+        async def within_deadline(
+            provider: str, request: Any
+        ) -> list[dict[str, Any]]:
+            try:
+                return await asyncio.wait_for(
+                    request(), timeout=PLACE_SEARCH_PROVIDER_TIMEOUT_SECONDS
+                )
+            except asyncio.TimeoutError as exc:
+                raise RuntimeError(
+                    f"{provider} 검색이 {int(PLACE_SEARCH_PROVIDER_TIMEOUT_SECONDS)}초 안에 응답하지 않았습니다"
+                ) from exc
+
         provider_names = ("google", "kakao", "naver")
         gathered = await asyncio.gather(
-            google(), kakao(), naver(), return_exceptions=True
+            within_deadline("Google", google),
+            within_deadline("Kakao", kakao),
+            within_deadline("Naver", naver),
+            return_exceptions=True,
         )
 
     normalized: dict[str, list[dict[str, Any]]] = {}
@@ -1011,11 +1034,31 @@ async def place_search_endpoint(
     }
 
 
+class PlaceOpinionHit(BaseModel):
+    """Gemini 의견에 전달할 제한된 provider 후보 형태."""
+
+    provider: Literal["google", "kakao", "naver"]
+    native_id: str | None = Field(default=None, max_length=255)
+    name: str = Field(..., min_length=1, max_length=255)
+    address: str | None = Field(default=None, max_length=500)
+    road_address: str | None = Field(default=None, max_length=500)
+    latitude: float | None = None
+    longitude: float | None = None
+    category: str | None = Field(default=None, max_length=255)
+
+    @field_validator("latitude", "longitude")
+    @classmethod
+    def finite_coordinate(cls, value: float | None) -> float | None:
+        if value is not None and not math.isfinite(value):
+            raise ValueError("좌표는 유한한 숫자여야 합니다")
+        return value
+
+
 class PlaceOpinionRequest(BaseModel):
     """`POST /place-search/opinion` 요청 — provider 후보로 Gemini 의견을 구한다."""
 
-    query: str = Field(..., min_length=1)
-    hits: list[dict[str, Any]] = Field(default_factory=list)
+    query: str = Field(..., min_length=1, max_length=255)
+    hits: list[PlaceOpinionHit] = Field(default_factory=list, max_length=15)
 
 
 @router.post("/place-search/opinion")
@@ -1030,7 +1073,14 @@ async def place_search_opinion_endpoint(
     `asyncio.wait_for(12s)`로 상한을 둔다. 실패/초과는 `gemini=null`로 흡수한다.
     """
     query = payload.query.strip()
-    if not query or not payload.hits:
+    # Google Places 원본은 provider 정책 미확정 상태에서 Gemini로 재전달하지 않는다.
+    # Google 선택은 UI가 수동 확정 payload(manual, evidence 없음)로 변환한다.
+    safe_hits = [
+        hit.model_dump()
+        for hit in payload.hits
+        if hit.provider != "google"
+    ]
+    if not query or not safe_hits:
         return {"gemini": None, "error": None}
     try:
         runtime = await settings_service.get_llm_runtime(session)
@@ -1039,7 +1089,7 @@ async def place_search_opinion_endpoint(
             place_search.gemini_place_opinion(
                 runtime,
                 query=query,
-                hits=payload.hits,
+                hits=safe_hits,
                 raise_on_error=True,
             ),
             timeout=12.0,
@@ -1225,22 +1275,31 @@ async def delete_source_target(
     target_id: int, session: AsyncSession = Depends(get_session)
 ) -> dict[str, Any]:
     """반복 수집 대상을 비활성화한다(watermark 보존)."""
-    target = await source_scan_service.deactivate_target(session, target_id)
+    target = await source_scan_service.deactivate_target(
+        session, target_id, commit=False
+    )
     if target is None:
         raise HTTPException(status_code=404, detail="source target not found")
-    await audit_service.record(
-        session,
-        actor_type="web",
-        action="source_target.deactivate",
-        target_type="source_target",
-        target_id=str(target_id),
-    )
+    try:
+        await audit_service.record(
+            session,
+            actor_type="web",
+            action="source_target.deactivate",
+            target_type="source_target",
+            target_id=str(target_id),
+            commit=False,
+        )
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
     return {"status": "ok"}
 
 
 class SourceTargetUpdate(BaseModel):
     """반복 수집 대상 수정 요청(제공된 필드만 갱신)."""
 
+    query: str | None = Field(default=None, min_length=1, max_length=255)
     scan_interval_minutes: int | None = Field(default=None, ge=1, le=525_600)
     max_runs: int | None = Field(default=None, ge=0)
     is_active: bool | None = None
@@ -1249,6 +1308,16 @@ class SourceTargetUpdate(BaseModel):
     # POI 카테고리 매칭 실패 시 쓸 기본 카테고리 코드(unknown=0 포함).
     default_category_code: str | None = None
 
+    @field_validator("query")
+    @classmethod
+    def normalize_query(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("검색어는 공백만으로 만들 수 없습니다")
+        return normalized
+
 
 @router.patch("/source-targets/{target_id}")
 async def update_source_target(
@@ -1256,31 +1325,45 @@ async def update_source_target(
     payload: SourceTargetUpdate,
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
-    """반복 수집 대상의 주기/횟수/활성 여부를 수정한다."""
+    """반복 수집 대상의 검색어·주기·횟수·활성 여부를 수정한다."""
     if (
         payload.default_category_code is not None
         and category_catalog.normalize_code(payload.default_category_code) is None
     ):
         raise HTTPException(status_code=400, detail="지원하지 않는 기본 카테고리 코드입니다")
-    target = await source_scan_service.update_recurring_target(
-        session,
-        target_id,
-        scan_interval_minutes=payload.scan_interval_minutes,
-        max_runs=payload.max_runs,
-        is_active=payload.is_active,
-        max_videos=payload.max_videos,
-        default_category_code=payload.default_category_code,
-    )
+    try:
+        target = await source_scan_service.update_recurring_target(
+            session,
+            target_id,
+            query=payload.query,
+            scan_interval_minutes=payload.scan_interval_minutes,
+            max_runs=payload.max_runs,
+            is_active=payload.is_active,
+            max_videos=payload.max_videos,
+            default_category_code=payload.default_category_code,
+            commit=False,
+        )
+    except source_scan_service.SourceTargetActiveRunError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except source_scan_service.SourceTargetConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if target is None:
         raise HTTPException(status_code=404, detail="source target not found")
-    await audit_service.record(
-        session,
-        actor_type="web",
-        action="source_target.update",
-        target_type="source_target",
-        target_id=str(target_id),
-        payload=payload.model_dump(exclude_none=True),
-    )
+    try:
+        await audit_service.record(
+            session,
+            actor_type="web",
+            action="source_target.update",
+            target_type="source_target",
+            target_id=str(target_id),
+            payload=payload.model_dump(exclude_none=True),
+            commit=False,
+        )
+        await session.commit()
+        await session.refresh(target)
+    except Exception:
+        await session.rollback()
+        raise
     titles = await _resolve_title_map(
         session, [(target.target_type, target.source_value)]
     )
@@ -1310,19 +1393,34 @@ async def run_source_target_now(
     `force=true`(강제 재실행)면 증분 워터마크를 리셋해 대상 영상을 재수집하고
     대상의 미완료 영상을 다시 후처리한다.
     """
-    target, run, created = await source_scan_service.run_target_now(
-        session, target_id, force=force
-    )
+    try:
+        target, run, created = await source_scan_service.run_target_now(
+            session, target_id, force=force, commit=False
+        )
+    except source_scan_service.SourceTargetDeletedError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if target is None:
         raise HTTPException(status_code=404, detail="source target not found")
-    await audit_service.record(
-        session,
-        actor_type="web",
-        action="source_target.run_now",
-        target_type="source_target",
-        target_id=str(target_id),
-        payload={"run_id": run.id if run else None, "created": created, "force": force},
-    )
+    try:
+        await audit_service.record(
+            session,
+            actor_type="web",
+            action="source_target.run_now",
+            target_type="source_target",
+            target_id=str(target_id),
+            payload={
+                "run_id": run.id if run else None,
+                "created": created,
+                "force": force,
+            },
+            commit=False,
+        )
+        await session.commit()
+        if run is not None:
+            await session.refresh(run)
+    except Exception:
+        await session.rollback()
+        raise
     return {
         "job_id": str(run.id) if run else None,
         "state": run.state if run else None,
