@@ -1881,11 +1881,6 @@ async def resolve_unmatched_candidate(
             client_operation_id=payload.client_operation_id,
             commit=False,
         )
-    except place_service.ProviderPersistenceDisabled as exc:
-        raise HTTPException(
-            status_code=403,
-            detail={"code": "provider_persistence_disabled", "message": str(exc)},
-        ) from exc
     except place_service.NearbyPlaceConfirmationRequired as exc:
         raise HTTPException(
             status_code=409,

@@ -2267,12 +2267,10 @@ async def test_resolve_candidate_and_deep_research(client, session_factory):
     assert research.json()["state"] == "pending"
 
 
-async def test_resolve_candidate_rejects_google_without_mutation(
+async def test_resolve_candidate_persists_google_selected_hit(
     client, session_factory
 ):
-    from sqlalchemy import select
-
-    from ktc.models import ExtractedPlaceCandidate, MatchStatus, TravelPlace, YoutubeVideo
+    from ktc.models import ExtractedPlaceCandidate, MatchStatus, YoutubeVideo
 
     async with session_factory() as s:
         s.add(YoutubeVideo(video_id="v-google-api", title="t", url="u", channel_id="c"))
@@ -2280,7 +2278,7 @@ async def test_resolve_candidate_rejects_google_without_mutation(
         candidate = ExtractedPlaceCandidate(
             video_id="v-google-api",
             source_text="s",
-            ai_place_name="Google 저장 금지",
+            ai_place_name="Google 선택 장소",
             match_status=MatchStatus.NEEDS_REVIEW,
             provider_evidence_json={"transcript": {"segment": "보존"}},
         )
@@ -2295,37 +2293,41 @@ async def test_resolve_candidate_rejects_google_without_mutation(
             "client_operation_id": _client_operation_id(),
             "expected_revision": 1,
             "action": "create_place",
-            "corrected_name": "Google 저장 금지",
+            "corrected_name": "Google 선택 장소",
             "latitude": 37.0,
             "longitude": 127.0,
             "api_source": "google",
             "selected_hit": {
                 "provider": "google",
                 "native_id": "google-place-id",
-                "query": "Google 저장 금지",
+                "query": "Google 선택 장소",
                 "searched_at": "2026-07-13T01:00:00Z",
                 "selected_at": "2026-07-13T01:00:01Z",
-                "name": "Google 저장 금지",
+                "name": "Google 선택 장소",
                 "latitude": 37.0,
                 "longitude": 127.0,
             },
         },
     )
 
-    assert response.status_code == 403
-    assert response.json()["detail"]["code"] == "provider_persistence_disabled"
+    assert response.status_code == 200
+    body = response.json()
+    assert body["candidate"]["match_status"] == MatchStatus.USER_CORRECTED
+    assert body["place"]["api_source"] == "google"
+    assert body["candidate"]["provider_evidence_json"]["review"]["resolutions"][-1][
+        "selection"
+    ]["provider"] == "google"
     async with session_factory() as s:
         candidate = await s.get(ExtractedPlaceCandidate, candidate_id)
         assert candidate is not None
-        assert candidate.match_status == MatchStatus.NEEDS_REVIEW
-        assert candidate.matched_place_id is None
-        assert candidate.reviewed_at is None
-        assert candidate.provider_evidence_json == {
-            "transcript": {"segment": "보존"}
-        }
-        assert (await s.execute(select(TravelPlace))).scalars().all() == []
+        assert candidate.match_status == MatchStatus.USER_CORRECTED
+        assert candidate.matched_place_id == body["place"]["place_id"]
+        assert candidate.provider_evidence_json["transcript"] == {"segment": "보존"}
+        assert candidate.provider_evidence_json["review"]["resolutions"][-1][
+            "final"
+        ]["api_source"] == "google"
         logs = await audit_service.list_recent(s)
-        assert all(log.action != "candidate.resolve" for log in logs)
+        assert any(log.action == "candidate.resolve" for log in logs)
 
 
 async def test_resolve_candidate_rejects_invalid_selected_hit_timestamps(client):

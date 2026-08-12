@@ -187,7 +187,7 @@ function ProviderSection({
           const selectionNotice = placeHitStorageBlockReason(hit);
           const selectable = hasCoords && isPlaceHitSelectable(hit);
           const isSelected = selectedHit === hit;
-          // 서수는 선택 가능 hit(orderedHits, 좌표+저장 허용) reference 순서를 단일
+          // 서수는 선택 가능 hit(좌표+저장 허용) reference 순서를 단일
           // 출처로 쓴다. 키보드 1–9·지도 번호와 동일 순서/번호이며, 선택 불가 행에는
           // 배지·단축키를 붙이지 않는다(로딩 중 재정렬로도 어긋나지 않음).
           const shortcutNumber = searchHitShortcutNumber(

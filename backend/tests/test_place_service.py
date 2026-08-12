@@ -14,6 +14,7 @@ from ktc.etl import admin_region_service
 from ktc.models import (
     ExtractedPlaceCandidate,
     FeatureExport,
+    FeatureExportOperation,
     FeatureExportStatus,
     MatchStatus,
     MediaAsset,
@@ -23,7 +24,7 @@ from ktc.models import (
     YoutubeVideo,
     utcnow,
 )
-from ktc.services import place_service as svc
+from ktc.services import feature_export_service, place_service as svc
 
 
 def test_haversine_known_distance():
@@ -550,14 +551,14 @@ async def test_resolve_preserves_evidence_and_copies_versioned_resolution_to_map
     assert mapping.provider_evidence_json == resolved.provider_evidence_json
 
 
-async def test_resolve_google_selection_is_rejected_without_mutation(session):
-    session.add(YoutubeVideo(video_id="v-google-block", title="t", url="u", channel_id="c"))
+async def test_resolve_google_selection_persists_selected_provenance(session):
+    session.add(YoutubeVideo(video_id="v-google-selected", title="t", url="u", channel_id="c"))
     await session.commit()
     original_evidence = {"transcript": {"segment": "보존"}}
     candidate = ExtractedPlaceCandidate(
-        video_id="v-google-block",
+        video_id="v-google-selected",
         source_text="s",
-        ai_place_name="저장 금지",
+        ai_place_name="Google 선택 장소",
         match_status=MatchStatus.NEEDS_REVIEW,
         provider_evidence_json=original_evidence,
     )
@@ -565,31 +566,99 @@ async def test_resolve_google_selection_is_rejected_without_mutation(session):
     await session.commit()
     await session.refresh(candidate)
 
-    with pytest.raises(svc.ProviderPersistenceDisabled):
-        await svc.resolve_candidate(
-            session,
-            candidate_id=candidate.id,
-            action="create_place",
-            reviewed_by="web",
-            place_data={
-                "name": "저장 금지",
-                "latitude": 37.0,
-                "longitude": 127.0,
-                "api_source": "google",
-            },
-            resolution_evidence={
-                "provider": "google",
-                "native_id": "google-place-id",
-                "query": "저장 금지",
-            },
-        )
+    resolved, place, mapping = await svc.resolve_candidate(
+        session,
+        candidate_id=candidate.id,
+        action="create_place",
+        reviewed_by="web",
+        place_data={
+            "name": "Google 선택 장소",
+            "latitude": 37.0,
+            "longitude": 127.0,
+            "api_source": "google",
+        },
+        resolution_evidence={
+            "provider": "google",
+            "native_id": "google-place-id",
+            "query": "Google 선택 장소",
+            "searched_at": "2026-08-13T01:00:00Z",
+            "selected_at": "2026-08-13T01:00:01Z",
+            "name": "Google 선택 장소",
+            "latitude": 37.0,
+            "longitude": 127.0,
+        },
+    )
 
-    await session.refresh(candidate)
-    assert candidate.match_status == MatchStatus.NEEDS_REVIEW
-    assert candidate.matched_place_id is None
-    assert candidate.reviewed_at is None
-    assert candidate.provider_evidence_json == original_evidence
-    assert (await session.execute(select(TravelPlace))).scalars().all() == []
+    assert place is not None and mapping is not None
+    assert resolved.match_status == MatchStatus.USER_CORRECTED
+    # ADR-43은 Google 선택 결과의 검수 저장만 허용한다. 외부 feature export는
+    # PENDING으로 남겨 새 ledger upsert를 만들지 않는다.
+    assert resolved.feature_export_status == FeatureExportStatus.PENDING.value
+    assert mapping.feature_export_status == FeatureExportStatus.PENDING.value
+    assert place.api_source == "google"
+    resolution = svc.latest_candidate_resolution(resolved)
+    assert resolution is not None
+    assert resolution["selection"]["provider"] == "google"
+    assert resolution["selection"]["native_id"] == "google-place-id"
+    assert resolution["final"]["api_source"] == "google"
+    assert resolved.provider_evidence_json["transcript"] == original_evidence["transcript"]
+    assert await feature_export_service.sync_dirty(session) == 0
+    assert (
+        await session.scalar(
+            select(FeatureExport.export_id).where(
+                FeatureExport.candidate_id == resolved.id
+            )
+        )
+        is None
+    )
+
+
+async def test_feature_export_blocks_google_origin_place_even_if_candidate_is_ready(session):
+    session.add(YoutubeVideo(video_id="v-google-export", title="t", url="u", channel_id="c"))
+    place = TravelPlace(
+        name="Google 원본 장소",
+        latitude=37.0,
+        longitude=127.0,
+        api_source="google",
+        is_geocoded=True,
+    )
+    session.add(place)
+    await session.flush()
+    candidate = ExtractedPlaceCandidate(
+        video_id="v-google-export",
+        source_text="s",
+        ai_place_name="Google 원본 장소",
+        match_status=MatchStatus.USER_CORRECTED,
+        matched_place_id=place.place_id,
+        feature_export_status=FeatureExportStatus.READY.value,
+    )
+    session.add(candidate)
+    await session.commit()
+
+    assert await feature_export_service.sync_feature_exports(session) == 0
+    assert (
+        await session.scalar(
+            select(FeatureExport.export_id).where(
+                FeatureExport.candidate_id == candidate.id
+            )
+        )
+        is None
+    )
+    export = FeatureExport(
+        export_id=f"ytpc_{candidate.id}",
+        sequence=await feature_export_service._next_sequence(session),
+        candidate_id=candidate.id,
+        operation=FeatureExportOperation.UPSERT.value,
+        export_state=FeatureExportStatus.READY.value,
+        payload_json={},
+        payload_hash="sha256:test",
+    )
+    session.add(export)
+    await session.commit()
+
+    assert await feature_export_service.sync_feature_exports(session) == 1
+    await session.refresh(export)
+    assert export.operation == FeatureExportOperation.TOMBSTONE.value
 
 
 async def test_nearby_place_requires_confirmation_then_supports_both_decisions(session):

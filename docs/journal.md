@@ -4,6 +4,19 @@
 
 ---
 
+## 2026-08-13: T-186 Google 명시 선택 확정 저장 예외
+
+- **사용자 결정 반영**: 검수자가 명시적으로 선택한 Google Places 결과는 `travel_places`와
+  `provider_evidence_json.review.resolutions[]`의 확정 provenance에 저장하도록 허용했다. 선택한 hit은
+  지도 marker·근접 중복 확인·Gemini 의견 요청과 같은 검수 capability를 쓰며, Web·MCP는 동일한
+  `resolve_candidate` 경계를 통과한다.
+- **정책 경계**: Google/provider 응답 cache는 deny-by-default를 유지한다. `api_source=google` 장소의
+  candidate·mapping은 feature export `PENDING`으로 두고, 기존 ledger는 tombstone으로 회수해 검수 저장이
+  외부 feature export로 번지지 않게 했다.
+- **검증**: 실제 PostGIS에서 Google 검색·service resolve·REST resolve·외부 export 차단/tombstone을
+  검증했다. 상태·캐시·동시성, 키보드·모바일·접근성 두 적대적 리뷰의 최종 delta는
+  BLOCKER/MAJOR/MINOR 0건이었다.
+
 ## 2026-08-11: 검색어 반복 수집 수정·삭제와 검수 provider/응답성 보완
 
 - **검색어 반복 작업**: 반복 검색어를 수정할 수 있도록 `SourceTargetUpdate.query`와 수집

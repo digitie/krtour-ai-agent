@@ -4,7 +4,8 @@
 > 릴리스 게이트(G10)로 명시하기 위한 **운영 검토**다. 최종 판단이 필요한 항목은
 > "결정 필요 항목"에 모아 사용자 결정을 기다린다.
 >
-> 확인일: **2026-07-13** / 작성: T-158 (로드맵 PR-29, §10 B4)
+> 확인일: **2026-07-13** / 작성: T-158 (로드맵 PR-29, §10 B4) /
+> 사용자 결정 반영: **2026-08-13**
 
 ## 0. Release gate 선언
 
@@ -19,10 +20,11 @@
 보안·queue·일반 UX 작업은 병행할 수 있다. **기존 RustFS 객체 삭제는 하지 않는다**
 (사용자 결정·ADR 필요 — §5 참고). production kill switch는 §4 참고.
 
-**해소된 게이트 항목**: Google Places 결과의 VWorld 지도 **표시** 형태는 사용자
-결정(2026-07-13)으로 **현행 유지가 승인**되어 gate 대상이 아니다 — 인지된 정책
-리스크로 기록을 보존한다(§3 C-3, §7-2). Google 결과의 **저장** 차단(T-174)은 별개로
-유지된다.
+**해소된 게이트 항목**: Google Places 결과의 VWorld 지도 **표시**와 검수자가
+**명시적으로 선택한 결과의 확정 provenance 저장**은 사용자 결정(2026-07-13,
+2026-08-13)으로 현행 유지가 승인되어 gate 대상이 아니다. 다만 이는 인지된 정책
+리스크를 수용한 운영 결정이며, Google 응답 cache와 외부 feature export는 여전히
+별도 결정이 필요하다(§3 C-3·C-4, §7-2).
 
 **검수 수동 확정 경계**: provider 정책의 최종 확정 전에도 검수자는 Google 결과를
 입력 보조로 선택할 수 있다. 이 선택은 `manual` 확정으로 변환하며 Google의 원본 이름,
@@ -39,7 +41,7 @@ export에 저장하거나 전달하지 않는다. 저장되는 최종 장소 값
 |---|---|---|---|---|---|---|
 | **표시** | ✅ metadata 표시 허용(브랜딩 규정 준수, III.F) | ✅ 지도 없이 표시 허용(ST §14.1) + attribution | ⚠️ 자기 서비스에서 결과 수신 **즉시 1회 사용**만(제7조⑪) | ⚠️ 검색결과 **독립 노출**, 삽입·왜곡·수정·변조 금지(특약 2.1) | ⚠️ 서비스 내 사용(명시 허용이 아닌 금지 조항 부재의 반대해석)[^kakao] | ✅ API 목적 내 사용(실시간) |
 | **지도 표시** | ❓ 지도 관련 별도 조항 미확인 | ❌ **비-Google 지도(VWorld 포함) 표시 금지**(ST §14.2) | ❓ 지도 종류 제한 조항 미확인(Maps 사용 가이드 준수 의무, 제7조⑦) | ❓ 명시 조항 미확인(왜곡 금지 원칙 적용) | ❓ 운영정책에 지도 제한 조항 미확인 | ✅ VWorld 지도 자체가 표시 수단 |
-| **영구 저장** | ❌ audiovisual content 저장은 **사전 서면 승인** 필요(III.E.1); metadata는 30일 규칙(III.E.4) | ❌ 금지. **예외: place ID는 무기한 저장 가능**(정책 페이지) | ❌ 별도 저장·**DB화·재사용 엄격 금지**(제7조⑨·⑪) | ❌ 무단 복제·저장(캐시 포함)·가공 금지, "지역정보 수집→별도 DB 관리" 명시 금지(7.3.③) | ⚠️ 사전 승낙 없는 복사·복제·타인 제공 금지(제5조) — 영구 저장 허용 필드 ❓미확인 | ❌ "별도의 저장장치나 데이터베이스에 저장할 수 없습니다"(지오코더 가이드) |
+| **영구 저장** | ❌ audiovisual content 저장은 **사전 서면 승인** 필요(III.E.1); metadata는 30일 규칙(III.E.4) | ⚠️ 사용자 결정으로 **검수자가 명시 선택한 결과의 확정 provenance만** 저장 허용(약관 충돌 리스크 수용). place ID 무기한 저장 예외 외의 일반 저장은 여전히 제한 | ❌ 별도 저장·**DB화·재사용 엄격 금지**(제7조⑨·⑪) | ❌ 무단 복제·저장(캐시 포함)·가공 금지, "지역정보 수집→별도 DB 관리" 명시 금지(7.3.③) | ⚠️ 사전 승낙 없는 복사·복제·타인 제공 금지(제5조) — 영구 저장 허용 필드 ❓미확인 | ❌ "별도의 저장장치나 데이터베이스에 저장할 수 없습니다"(지오코더 가이드) |
 | **임시 cache** | ⚠️ API Data 30일 이내 저장 후 삭제/refresh(III.E.4) — 무기한 예외는 Authorized Data 한정, API key 수집(Non-Authorized)에는 **적용 불가** | ⚠️ lat/lng **30일** 임시 캐시 후 삭제(ST §14.3) | ❌ 문면상 불허(즉시 1회 사용, 제7조⑪) — 계정별 제품 약관 확인 전 **기본 off** | ❌ 문면상 캐시 포함 금지(7.3.③) — UX 예외 조항 없음 | ⚠️ UX 개선 목적 cache는 금지 대상에서 제외(제5조 반대해석)[^kakao] + 최신 데이터 유지 의무 | ❌ 문면상 불허(실시간 사용) |
 | **attribution 의무** | ✅ YouTube가 출처임을 표시(III.F.2 브랜딩) | ✅ 지도 없이 표시 시 **Google 로고/"Google Maps" 텍스트**(정책 페이지) | ⚠️ 회사 로고·지정 표시 **게재 요청 시 준수**(제7조⑩) | ⚠️ 네이버 BI 가이드 준수(7.3.⑨) — 세부 ❓미확인 | ❓ 운영정책에 명시 attribution 조항 없음 | ❓ 이용약관 전문 미확보 |
 | **외부 export** | ❌ Authorized Data는 승인한 사용자 외 접근 불가(III.E.3 — Authorized Data Usage); 파생 POI의 지위는 ❓검토 필요 | ❌ GMP Terms of Service **§3.2.3(a) "No Scraping"·(b) "No Caching"** — Google Maps Content의 대량 취득·캐싱/저장·export 일반 제한 | ❌ 제3자 제공 금지(제7조⑨), API/SDK 재판매 금지(제7조⑫) | ❌ 제3자 제공·재제공 금지(7.3.③·⑥) | ❌ 사전 승낙 없는 타인 제공 금지(제5조) | ❓ 미확인 |
@@ -168,8 +170,8 @@ export에 저장하거나 전달하지 않는다. 저장되는 최종 장소 값
 |---|---|---|---|
 | C-1 | **원본 미디어 무기한 보존 계약(ADR-15)** — `MEDIA_RETENTION_POLICY=infinite`, RustFS `kor-travel-concierge` 버킷에 원본 동영상/오디오 저장 | `backend/ktc/etl/frame_extraction.py`의 `store_raw_media`(현재 프로덕션 호출부는 없고 테스트만 존재 — 계약과 향후 PR-18/19가 확대 예정), `.env*`의 `MEDIA_RETENTION_POLICY` | YouTube Developer Policies **III.E.1** (사전 서면 승인 없는 다운로드·캐시·저장 금지) |
 | C-2 | **yt-dlp 다운로드 경로** — 자막 파일 다운로드(`fetch_via_ytdlp`), whisper 폴백의 오디오(bestaudio→mp3) 다운로드(`transcribe_via_whisper`), 프레임 추출용 스트림 URL 확보(`resolve_stream_url_ytdlp`) | `backend/ktc/etl/transcript.py`, `backend/ktc/etl/frame_extraction.py` | III.E.1(오디오는 audiovisual content — 임시 tmpdir라도 다운로드 자체가 쟁점), III.E.6/III.D(비공식 수단 접근). **현재 dev·prod env 모두 `TRANSCRIPT_WHISPER_ENABLED=true`로 켜져 있어 오디오 다운로드가 실제로 발생 가능**(§6.2 인벤토리) |
-| C-3 | **Google 결과의 VWorld 지도 표시** — 검수 화면 `/place-search`의 Google hit이 VWorld(maplibre) 지도에 마커로 표시되고 선택·저장 가능 | `backend/ktc/etl/place_search.py` `search_google_places`, `backend/ktc/api/routes.py` `/place-search`, 검수 프런트 지도 | Service Specific Terms **§14.2** (비-Google 지도와 함께 사용 금지). prod 403은 안전장치가 아니다 — 키 제한 문제일 뿐(T-151/T-154). **사용자 결정(2026-07-13): 현행 유지 — 인지된 정책 리스크로 운영**(§7-2) |
-| C-4 | **Google 결과의 저장** — 검수에서 Google hit 선택 시 이름·주소·좌표가 `travel_places`/후보 evidence로 영구 저장될 수 있음 | 검수 resolve 경로(`place_service`), `provider_evidence_json`(T-065) | §14.3(lat/lng 30일 한도), 정책 페이지(저장 제한 — place ID만 무기한). **T-174는 Google 저장 차단을 기본으로 설계**(PR-31) |
+| C-3 | **Google 결과의 VWorld 지도 표시** — 검수 화면 `/place-search`의 Google hit이 VWorld(maplibre) 지도에 마커로 표시되고 선택 가능 | `backend/ktc/etl/place_search.py` `search_google_places`, `backend/ktc/api/routes.py` `/place-search`, 검수 프런트 지도 | Service Specific Terms **§14.2** (비-Google 지도와 함께 사용 금지). prod 403은 안전장치가 아니다 — 키 제한 문제일 뿐(T-151/T-154). **사용자 결정(2026-07-13): 현행 유지 — 인지된 정책 리스크로 운영**(§7-2) |
+| C-4 | **Google 결과의 명시 선택 저장** — 검수자가 Google hit을 선택해 이름·주소·좌표를 `travel_places`와 후보 review resolution provenance에 확정 저장할 수 있음 | 검수 resolve 경로(`place_service`), `provider_evidence_json`(T-065/T-186) | §14.3(lat/lng 30일 한도), 정책 페이지(저장 제한 — place ID만 무기한). **사용자 결정(2026-08-13): 검수 선택·확정 경로만 허용**. Google 응답 cache와 외부 feature export는 이 예외에 포함하지 않는다. |
 | C-5 | **지오코딩 provider 결과의 영구 저장** — VWorld/Kakao/Naver 후보와 선택 결과를 `provider_evidence_json`(JSONB)·`travel_places` 좌표/주소로 보존 | `backend/ktc/etl/geocode_service.py`, `geocoding.py`, migration 20260610_0004 | NCP Maps **제7조⑨·⑪**(저장·DB화 금지), NAVER Developers **7.3.③**(지역정보 별도 DB 관리 금지), VWorld 가이드(실시간 사용·DB 저장 불가), Kakao 제5조(최신성 유지 의무). Google 유래 필드가 섞이는 경우 GMP ToS **§3.2.3(b)·(c)(iv)** 참고 |
 | C-6 | **features API 외부 공급** — `/api/v1/features/snapshot`·`/changes`가 provider 유래 필드(좌표·주소·카테고리 등)를 downstream(`kor-travel-map`→PinVi)에 export | `backend/ktc/services/feature_export_service.py`, `docs/feature-export-api.md` | 각 provider의 제3자 제공 금지 조항(NCP 제7조⑨, NAVER 7.3.③·⑥, Kakao 제5조, Google GMP ToS §3.2.3(a)·(b) + 파생 생성 제한 §3.2.3(c)(iv)). **파생·독자 판단 데이터**(사용자 검수 확정, AI 카테고리 제안 등)와 **provider 원본 필드**의 경계 정의가 필요 |
 | C-7 | **YouTube metadata 30일 규칙** — `youtube_videos`의 제목·설명·통계 등 metadata를 무기한 보존, 30일 refresh/delete 없음 | `backend/ktc/models/youtube_video.py`, 수집 파이프라인 | III.E.4 (30일 저장 후 삭제/refresh — 무기한 예외는 Authorized Data 한정이라 API key 수집인 본 프로젝트에는 **적용 불가**, §2.1). refresh/delete는 **metadata 범위로 한정**하고 파생 POI로 확대하지 않는다 |
@@ -195,9 +197,10 @@ export에 저장하거나 전달하지 않는다. 저장되는 최종 장소 값
 와 별개로 원본 미디어 저장 정책(ADR-15) 대상이며, 대표 프레임의 정책적 지위(§5
 "대표 프레임의 지위는 검토 필요")는 이 플래그를 켜기 전 별도로 재확인해야 한다.
 
-**소관 구분**: provider **cache** kill switch는 캐시가 실제로 생기는 T-170 소관이고
-(현재 지오코딩 cache 자체가 없어 끌 대상이 없다), Google 결과의 **저장** 전용 차단은
-T-174 소관이다 — 이 PR의 범위는 표시(검색) 게이트에 의한 간접 차단까지다.
+**소관 구분**: provider **cache** kill switch는 캐시가 실제로 생기는 T-170 소관이다.
+Google 결과의 검수 선택·확정 저장 허용은 T-186에서 사용자 결정으로 반영했지만, cache
+allowlist에는 Google을 추가하지 않는다. 이 문서의 저장 예외는 검색 응답 보관이나 외부
+공급을 허용하지 않는다.
 
 ## 5. ADR-15 재검토 — ADR 초안 (사용자 결정 대기)
 
@@ -285,10 +288,11 @@ list_objects_v2(Bucket="kor-travel-concierge")
 
 1. **[대기] ADR-15 재검토 옵션 선택** (§5 A/B/C/D) — 및 prod
    `RAW_MEDIA_STORE_ENABLED` false 적용 여부.
-2. **[확정] Google Places 사용 형태 — 사용자 결정(2026-07-13): 현행 유지.**
+2. **[확정] Google Places 사용 형태 — 사용자 결정(2026-07-13, 2026-08-13): 현행 유지.**
    VWorld 지도 표시는 의도적 운영이며 **인지된 정책 리스크**(ST §14.2, C-3)로
    기록한다. release gate 관점에서 이 항목은 해소 처리(§0)하되 리스크 서술은
-   보존한다. Google 결과의 **저장**은 별개 — T-174에서 차단이 기본.
+   보존한다. 검수자가 **명시 선택한 Google 결과의 확정 provenance 저장**도 허용한다.
+   단, Google/provider 응답 cache와 외부 feature export는 이 결정에 포함하지 않는다.
 3. **[대기] Naver Developers Local Search 결과의 저장 정책**: 7.3.③(별도 DB 관리
    금지)에 따라 검수 evidence 보존 범위(원본 필드 제외/최소화) 결정.
 4. **[확정] NCP Maps cache — 사용자 결정(2026-07-13): T-170에서 정책 matrix 기반

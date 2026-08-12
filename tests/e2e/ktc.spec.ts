@@ -661,15 +661,15 @@ test.describe('Kor Travel Concierge E2E 검증', () => {
           google: [
             {
               provider: 'google',
-              native_id: 'google-blocked-1',
-              name: 'Google 정책 장소',
+              native_id: 'google-selected-1',
+              name: 'Google 저장 장소',
               address: '제주 Google 주소',
               road_address: null,
               latitude: 33.45,
               longitude: 126.94,
               category: '카페',
-              storage_allowed: false,
-              storage_block_reason: '정책 결정 전에는 저장할 수 없습니다.',
+              storage_allowed: true,
+              storage_block_reason: null,
             },
           ],
           kakao: [
@@ -731,21 +731,20 @@ test.describe('Kor Travel Concierge E2E 검증', () => {
 
     await loginAsAdmin(page, '/review?mode=table');
     await page.getByRole('row', { name: /성산 일출봉 카페/ }).click();
-    const googleHit = page.getByRole('button', { name: /Google 정책 장소/ });
-    await expect(googleHit).toBeDisabled();
-    await page.getByRole('button', { name: /^Kakao 저장 장소/ }).click();
+    const googleHit = page.getByRole('button', { name: /^Google 저장 장소/ });
+    await expect(googleHit).toBeEnabled();
+    const googleMarker = page
+      .getByRole('region', { name: 'VWorld 지도' })
+      .getByRole('button', { name: /Google 저장 장소/ });
+    await expect(googleMarker).toHaveCount(1);
+    await googleMarker.click();
     await expect(page.getByText('선택 원본')).toBeVisible();
-    await expect(
-      page
-        .getByRole('region', { name: 'VWorld 지도' })
-        .getByRole('button', { name: /Google 정책 장소/ }),
-    ).toHaveCount(0);
 
     await page.getByRole('button', { name: '저장', exact: true }).click();
     const conflictDialog = page.getByRole('alertdialog');
     await expect(conflictDialog).toBeVisible();
     await expect(
-      conflictDialog.getByLabel('근접 중복 확인 대상').getByText('Kakao 저장 장소', {
+      conflictDialog.getByLabel('근접 중복 확인 대상').getByText('Google 저장 장소', {
         exact: true,
       }),
     ).toBeVisible();
@@ -763,13 +762,13 @@ test.describe('Kor Travel Concierge E2E 검증', () => {
     await expect.poll(() => resolveBodies.length).toBe(2);
     expect(resolveBodies[0]).toMatchObject({
       action: 'create_place',
-      corrected_name: 'Kakao 저장 장소',
-      official_address: '제주 서귀포시 성산읍 1',
-      road_address: '제주 서귀포시 성산로 1',
-      api_source: 'kakao',
+      corrected_name: 'Google 저장 장소',
+      official_address: '제주 Google 주소',
+      road_address: null,
+      api_source: 'google',
       selected_hit: {
-        provider: 'kakao',
-        native_id: 'kakao-selected-1',
+        provider: 'google',
+        native_id: 'google-selected-1',
         query: '제주 서귀포 성산 일출봉 카페',
         searched_at: '2026-07-13T01:00:00Z',
       },

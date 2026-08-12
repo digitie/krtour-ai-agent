@@ -83,17 +83,17 @@ describe("검수 선택 provenance", () => {
     expect(input.officialAddress).toBeUndefined();
   });
 
-  it("Google hit은 capability 값과 무관하게 저장을 차단한다", () => {
+  it("사용자가 선택한 Google hit은 저장 허용 capability를 따른다", () => {
     expect(
       isPlaceHitStorageAllowed({
         ...kakaoHit,
         provider: "google",
         storage_allowed: true,
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
-  it("Google 선택은 원본 증거를 남기지 않는 manual 확정으로 변환한다", () => {
+  it("Google 선택은 원본 evidence와 api_source를 보존해 확정한다", () => {
     const input = buildCreatePlaceResolution(
       {
         name: "검수자가 확인한 장소",
@@ -108,10 +108,13 @@ describe("검수 선택 provenance", () => {
       },
     );
 
-    expect(input.apiSource).toBe("manual");
-    expect(input.selectedHit).toBeUndefined();
-    expect(input.officialAddress).toBeUndefined();
-    expect(input.roadAddress).toBeUndefined();
+    expect(input.apiSource).toBe("google");
+    expect(input.selectedHit).toMatchObject({
+      provider: "google",
+      native_id: "google-place-id",
+    });
+    expect(input.officialAddress).toBe(kakaoHit.address);
+    expect(input.roadAddress).toBe(kakaoHit.road_address);
   });
 
   it("409 nearby detail을 사용자 선택 후보로 보존한다", () => {
