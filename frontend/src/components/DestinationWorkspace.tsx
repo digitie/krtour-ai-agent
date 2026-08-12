@@ -310,9 +310,9 @@ export function DestinationWorkspace() {
   }
 
   return (
-    <div className="flex h-full min-h-[36rem] flex-col overflow-hidden bg-background lg:min-h-0">
+    <div className="flex h-full min-h-[36rem] flex-col overflow-hidden border-y border-surface-muted bg-background lg:min-h-0 lg:rounded-xl lg:border">
       {videoFilter ? (
-        <div className="flex items-center justify-between gap-2 border-b bg-primary/5 px-4 py-1.5 text-xs">
+        <div className="flex items-center justify-between gap-2 border-b border-brand/15 bg-brand-tint/65 px-4 py-2 text-xs">
           <span className="truncate text-muted-foreground">
             영상 필터: 이 영상이 언급한 장소만 표시 중
           </span>
@@ -327,9 +327,9 @@ export function DestinationWorkspace() {
         </div>
       ) : null}
       {/* 장소(지도 왼쪽, 좁은 칼럼) + 지도 */}
-      <div className="grid h-full min-h-[30rem] flex-1 grid-cols-1 lg:min-h-0 lg:grid-cols-[0.7fr_1.6fr] lg:overflow-hidden">
+      <div className="grid h-full min-h-[30rem] flex-1 grid-cols-1 lg:min-h-0 lg:grid-cols-[0.72fr_1.6fr] lg:overflow-hidden">
         {/* 좁은 화면(스택): 지도가 위, 리스트가 아래(order). 데스크톱(lg): 좌 리스트 / 우 지도 유지. */}
-        <div className="order-2 flex min-h-[22rem] flex-col overflow-y-auto lg:order-none lg:min-h-0 lg:overflow-hidden lg:border-r">
+        <div className="order-2 flex min-h-[22rem] flex-col overflow-y-auto bg-card lg:order-none lg:min-h-0 lg:overflow-hidden lg:border-r">
           <DestinationList
             places={places}
             total={destinationTotal}
@@ -390,7 +390,7 @@ export function DestinationWorkspace() {
             onTextFilterChange={setTextFilter}
           />
         </div>
-        <div className="order-1 min-h-[22rem] overflow-hidden border-b lg:order-none lg:h-full lg:min-h-0 lg:border-b-0">
+        <div className="order-1 min-h-[22rem] overflow-hidden border-b bg-surface-subtle lg:order-none lg:h-full lg:min-h-0 lg:border-b-0">
           <VWorldMap
             places={places}
             selectedPlaceId={selectedPlace?.place_id ?? null}
@@ -510,7 +510,7 @@ function DestinationList({
   }, [selectedPlaceId]);
 
   return (
-    <section aria-label="장소 목록" className="flex flex-col gap-4 p-4 lg:min-h-0 lg:flex-1">
+    <section aria-label="장소 목록" className="flex flex-col gap-4 p-4 lg:min-h-0 lg:flex-1 lg:p-5">
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
           <PanelHeader

@@ -78,11 +78,11 @@ export function AppErrorPanel({ error, reset }: AppErrorPanelProps) {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-surface-page p-6">
-      <div className="w-full max-w-md rounded-lg border border-line bg-card p-6 shadow-card">
-        <p className="text-xs font-semibold uppercase tracking-wide text-brand">
-          UI RUNTIME ERROR
+      <div className="w-full max-w-md rounded-xl border border-line bg-card p-6 shadow-[var(--shadow-elevated)]">
+        <p className="ktc-eyebrow">
+          UI Runtime Error
         </p>
-        <h1 className="mt-2 text-lg font-semibold text-text-strong">
+        <h1 className="mt-2 text-[22px] font-extrabold tracking-[-0.03em] text-text-strong">
           페이지를 다시 불러오지 못했습니다
         </h1>
         <p className="mt-2 text-sm text-text-secondary">

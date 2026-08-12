@@ -60,7 +60,7 @@ export function SearchResultsPanel({
   onSelectHit,
 }: SearchResultsPanelProps) {
   return (
-    <div ref={resultsRef} className="scroll-mt-3 flex flex-col gap-3">
+    <div ref={resultsRef} className="scroll-mt-3 flex flex-col gap-4 rounded-xl border border-surface-muted bg-card p-4 shadow-[var(--shadow-card)]">
       {!opinionRequested ? (
         <Button
           type="button"
@@ -127,7 +127,7 @@ function GeminiCard({
   onApply: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-xl border border-primary/40 bg-primary/5 p-3">
+    <div className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-brand-tint/55 p-3">
       <div className="flex items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-sm font-medium">
           <SparklesIcon className="size-4 text-primary" />
@@ -170,9 +170,9 @@ function ProviderSection({
   onSelect: (hit: PlaceSearchHit) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2 border-t border-surface-muted pt-3 first:border-t-0 first:pt-0">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold">{label}</p>
+        <p className="text-[11px] font-extrabold tracking-[0.08em] text-text-secondary uppercase">{label}</p>
         <Badge variant="outline">{hits.length}</Badge>
       </div>
       {error ? (
@@ -204,7 +204,7 @@ function ProviderSection({
               aria-keyshortcuts={shortcutNumber ? String(shortcutNumber) : undefined}
               title={selectionNotice ?? undefined}
               onClick={() => onSelect(hit)}
-              className="flex flex-col gap-0.5 rounded-lg border p-2 text-left text-xs transition-colors hover:border-primary hover:bg-muted aria-pressed:border-primary aria-pressed:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex flex-col gap-1 rounded-lg border border-surface-muted bg-surface-row p-2.5 text-left text-xs transition-[border-color,background-color,box-shadow] duration-150 hover:border-brand/45 hover:bg-brand-tint/40 hover:shadow-[var(--shadow-card)] aria-pressed:border-brand aria-pressed:bg-brand-tint aria-pressed:shadow-[var(--shadow-card)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="flex items-center justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-1.5">

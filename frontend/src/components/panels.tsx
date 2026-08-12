@@ -20,14 +20,14 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-4">
       {actions ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[15px] font-bold">{title}</h2>
+          <h2 className="text-[16px] font-bold tracking-[-0.02em]">{title}</h2>
           {actions}
         </div>
       ) : (
-        <h2 className="text-[15px] font-bold">{title}</h2>
+        <h2 className="text-[16px] font-bold tracking-[-0.02em]">{title}</h2>
       )}
       {children}
     </section>
@@ -49,7 +49,7 @@ export function Panel({
   return (
     <section
       className={cn(
-        "rounded-lg border border-surface-muted bg-card p-4 shadow-[var(--shadow-card)]",
+        "rounded-xl border border-surface-muted bg-card p-4 shadow-[var(--shadow-card)]",
         className,
       )}
     >
@@ -121,21 +121,21 @@ export function MetricCard({
     </>
   );
   const className =
-    "flex min-w-0 items-start gap-3 rounded-lg border border-surface-muted bg-card p-4 shadow-[var(--shadow-card)]";
+        "group flex min-w-0 items-start gap-3 rounded-xl border border-surface-muted bg-card p-4 shadow-[var(--shadow-card)]";
   if (href) {
     return (
       <Link
         href={href}
         className={cn(
           className,
-          "transition-colors hover:border-brand/40 hover:bg-brand-tint/40",
+          "transition-[border-color,background-color,box-shadow] hover:border-brand/40 hover:bg-brand-tint/40 hover:shadow-[var(--shadow-card-hover)]",
         )}
       >
         {body}
       </Link>
     );
   }
-  return <div className={className}>{body}</div>;
+  return <div className={cn(className, "hover:border-brand/25")}>{body}</div>;
 }
 
 /** 작은 라벨/값 셀(요약 그리드·다이얼로그 요약 공용). KPI 숫자는 size="lg"로 크게(규칙 8). */

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "maplibre-gl/dist/maplibre-gl.css";
+@import "../../tokens.css";
 @config "../../tailwind.config.ts";
 
 /* geo UI는 light 전용 운영 콘솔이다. dark:는 OS prefers-color-scheme가 아니라 .dark 클래스
@@ -188,5 +189,127 @@
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Hallmark 리디자인: 기존 semantic 이름을 유지한 채 토큰 정본(frontend/tokens.css)으로
+   최종 매핑한다. 기존 호출부의 색상 계약을 깨지 않고 전 화면을 같은 표면 계층으로 정렬한다. */
+@layer base {
+  :root {
+    --surface-page: var(--ktc-surface-page);
+    --surface-card: var(--ktc-surface-card);
+    --surface-subtle: var(--ktc-surface-subtle);
+    --surface-muted: var(--ktc-surface-muted);
+    --surface-row: var(--ktc-surface-row);
+    --brand-tint: var(--ktc-brand-tint);
+    --brand: var(--ktc-brand);
+    --brand-foreground: var(--ktc-brand-foreground);
+    --brand-ink: var(--ktc-brand-ink);
+    --shell-rail: var(--ktc-shell-rail);
+    --shell-rail-soft: var(--ktc-shell-rail-soft);
+    --shell-rail-text: var(--ktc-shell-rail-text);
+    --shell-rail-muted: var(--ktc-shell-rail-muted);
+    --text-strong: var(--ktc-text-strong);
+    --text-primary: var(--ktc-text-primary);
+    --text-secondary: var(--ktc-text-secondary);
+    --text-tertiary: var(--ktc-text-tertiary);
+    --text-disabled: var(--ktc-text-disabled);
+    --icon-default: var(--ktc-icon-default);
+    --line: var(--ktc-line);
+    --info: var(--ktc-info);
+    --warning: var(--ktc-warning);
+    --success: var(--ktc-success);
+    --destructive: var(--ktc-destructive);
+    --warn: var(--warning);
+    --danger: var(--destructive);
+    --ok: var(--success);
+    --shadow-card: var(--ktc-shadow-card);
+    --shadow-card-hover: var(--ktc-shadow-card-hover);
+    --shadow-elevated: var(--ktc-shadow-elevated);
+    --shadow-button: 0 1px 2px rgb(20 40 31 / 0.08);
+    --shadow-modal: var(--ktc-shadow-modal);
+    --duration-fast: var(--ktc-duration-fast);
+    --duration-normal: var(--ktc-duration-normal);
+    --ease-default: var(--ktc-ease);
+    --radius: var(--ktc-radius);
+    --background: var(--surface-page);
+    --foreground: var(--text-strong);
+    --card: var(--surface-card);
+    --card-foreground: var(--text-strong);
+    --popover: var(--surface-card);
+    --popover-foreground: var(--text-strong);
+    --primary: var(--brand);
+    --primary-foreground: var(--brand-foreground);
+    --secondary: var(--surface-subtle);
+    --secondary-foreground: var(--text-strong);
+    --muted: var(--surface-subtle);
+    --muted-foreground: var(--text-secondary);
+    --accent: var(--brand-tint);
+    --accent-foreground: var(--brand-ink);
+    --destructive-foreground: var(--brand-foreground);
+    --border: var(--line);
+    --input: var(--line);
+    --ring: var(--brand);
+    --sidebar: var(--shell-rail);
+    --sidebar-foreground: var(--shell-rail-text);
+    --sidebar-primary: var(--brand);
+    --sidebar-primary-foreground: var(--brand-foreground);
+    --sidebar-accent: var(--shell-rail-soft);
+    --sidebar-accent-foreground: var(--shell-rail-text);
+    --sidebar-border: color-mix(in srgb, var(--shell-rail-text) 16%, transparent);
+    --sidebar-ring: var(--brand);
+  }
+
+  body {
+    font-family: var(--ktc-font-sans);
+    font-feature-settings: "kern" 1, "tnum" 1;
+    letter-spacing: -0.012em;
+  }
+
+  ::selection {
+    background: var(--brand-tint);
+    color: var(--brand-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--brand) 72%, white);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-tertiary) 45%, transparent);
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  .ktc-workspace {
+    min-width: 0;
+    max-width: 96rem;
+    margin-inline: auto;
+  }
+
+  .ktc-eyebrow {
+    color: var(--brand);
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+    line-height: 1.25;
+    text-transform: uppercase;
+  }
+
+  .ktc-scroll-cue {
+    scrollbar-color: color-mix(in srgb, var(--brand) 38%, transparent) transparent;
   }
 }

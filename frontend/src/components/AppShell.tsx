@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ActivityIcon,
   ClipboardCheckIcon,
   DownloadCloudIcon,
   ListChecksIcon,
@@ -11,11 +12,10 @@ import {
   MapIcon,
   PlugIcon,
   SettingsIcon,
-  ActivityIcon,
 } from "lucide-react";
 
 import { JobStatusLink } from "@/components/JobStatusLink";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { pickActiveNavHref } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
@@ -73,86 +73,107 @@ export function AppShell({
     return (
       <Link
         className={cn(
-          buttonVariants({
-            variant: active ? "secondary" : "ghost",
-            size: "sm",
-          }),
-          "justify-start whitespace-nowrap",
+          "group flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-[10px] font-bold no-underline transition-[background-color,color,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-white/70 lg:h-10 lg:flex-row lg:justify-start lg:gap-2 lg:px-3 lg:py-0 lg:text-[13px]",
+          active
+            ? "bg-white text-[var(--shell-rail)] shadow-[0_1px_2px_rgb(0_0_0_/_0.12)]"
+            : "text-[var(--shell-rail-muted)] hover:bg-white/10 hover:text-white",
         )}
         href={item.href}
         key={item.href}
       >
-        <Icon data-icon="inline-start" />
-        {item.label}
+        <Icon className="size-4 shrink-0" />
+        <span className="truncate">{item.label}</span>
       </Link>
     );
   };
 
   return (
-    <main className="min-h-screen bg-surface-page text-text-primary">
-      <div className="grid min-h-screen min-w-0 lg:grid-cols-[17rem_1fr]">
-        <aside className="min-w-0 border-b border-surface-muted bg-card shadow-[var(--shadow-card)] lg:border-r lg:border-b-0">
-          <div className="flex h-full min-w-0 flex-col gap-5 p-4 lg:p-5">
-            <div className="flex min-w-0 items-center gap-2">
+    <main className="min-h-dvh bg-surface-page text-text-primary">
+      <div className="grid min-h-dvh min-w-0 lg:grid-cols-[15.5rem_minmax(0,1fr)] xl:grid-cols-[16.5rem_minmax(0,1fr)]">
+        <aside className="min-w-0 border-b border-[color:var(--sidebar-border)] bg-[var(--shell-rail)] text-[var(--shell-rail-text)] lg:border-r lg:border-b-0">
+          <div className="flex h-full min-w-0 flex-col gap-3 px-3 py-3 lg:gap-7 lg:p-5">
+            <div className="flex min-w-0 items-center gap-2 lg:gap-3">
               <Link
-                className="flex min-w-0 flex-1 items-center gap-2 text-text-primary"
+                className="group flex min-w-0 flex-1 items-center gap-2 text-[var(--shell-rail-text)] no-underline lg:gap-3"
                 href="/"
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand">
-                  <MapIcon className="size-4" />
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-[0.65rem] border border-white/15 bg-white/10 text-white transition-[background-color,border-color] duration-150 group-hover:border-white/30 group-hover:bg-white/15 lg:size-10">
+                  <MapIcon className="size-4 lg:size-[18px]" />
                 </span>
-                <span className="truncate text-[14px] font-bold">
-                  Korea Travel Concierge
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px] font-extrabold tracking-[-0.02em] lg:text-[14px]">
+                    Korea Travel
+                  </span>
+                  <span className="block truncate text-[10px] font-medium tracking-[0.08em] text-[var(--shell-rail-muted)] uppercase">
+                    Concierge
+                  </span>
                 </span>
               </Link>
-              <JobStatusLink variant="menu" />
               <Button
                 type="button"
-                variant="outline"
-                size="icon-sm"
+                variant="ghost"
+                size="icon-xs"
                 onClick={logout}
                 aria-label="로그아웃"
                 title="로그아웃"
+                className="border border-white/12 text-[var(--shell-rail-muted)] hover:bg-white/10 hover:text-white"
               >
                 <LogOutIcon className="size-4" />
               </Button>
             </div>
-            <nav className="flex max-w-full gap-1 overflow-x-auto lg:max-h-[calc(100vh-6rem)] lg:flex-col lg:overflow-y-auto lg:pr-1">
+            <nav
+              aria-label="주요 탐색"
+              className="grid grid-cols-4 gap-1 sm:grid-cols-7 lg:flex lg:max-h-[calc(100vh-8rem)] lg:flex-col lg:overflow-y-auto lg:pr-1"
+            >
               {primaryNavItems.map(renderNavLink)}
               <div
                 aria-hidden
-                className="hidden lg:my-1 lg:block lg:border-t lg:border-surface-muted"
+                className="hidden lg:my-1 lg:block lg:border-t lg:border-white/10"
               />
               {secondaryNavItems.map(renderNavLink)}
             </nav>
+            <div className="hidden lg:mt-auto lg:flex lg:flex-col lg:gap-3">
+              <div className="rounded-lg border border-white/10 bg-white/[0.06] p-3">
+                <p className="text-[10px] font-bold tracking-[0.1em] text-[var(--shell-rail-muted)] uppercase">
+                  운영 흐름
+                </p>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-white/85">
+                  수집한 여행 단서를 검수하고 공급 가능한 장소 데이터로 정리합니다.
+                </p>
+              </div>
+              <JobStatusLink variant="menu" />
+            </div>
           </div>
         </aside>
         <div
           className={cn(
-            "flex min-h-screen min-w-0 flex-col",
+            "flex min-h-dvh min-w-0 flex-col",
             viewportLocked && "ktc-viewport-locked",
           )}
         >
-          <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-surface-muted bg-card px-4 py-3 lg:px-6">
-            <div className="flex min-w-0 items-baseline gap-2">
-              <h1 className="min-w-0 truncate text-[16px] leading-snug font-bold">
-                {title}
-              </h1>
-              {description ? (
-                <span className="truncate text-[12px] text-text-secondary">
-                  {description}
-                </span>
-              ) : null}
+          <header className="flex shrink-0 flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-surface-muted bg-card/85 px-4 py-4 backdrop-blur-sm lg:px-8 lg:py-5">
+            <div className="min-w-0">
+              <p className="ktc-eyebrow mb-1">운영 작업면</p>
+              <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+                <h1 className="min-w-0 text-[22px] leading-none font-extrabold tracking-[-0.035em] lg:text-[25px]">
+                  {title}
+                </h1>
+                {description ? (
+                  <span className="max-w-prose text-[12px] leading-relaxed text-text-secondary lg:text-[13px]">
+                    {description}
+                  </span>
+                ) : null}
+              </div>
             </div>
             {actions ? (
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-2 sm:flex-none sm:justify-end">
                 {actions}
               </div>
             ) : null}
           </header>
           <div
             className={cn(
-              "min-h-0 min-w-0 flex-1 px-4 py-4 lg:px-6 lg:py-6",
+              "min-h-0 min-w-0 flex-1 px-4 py-5 lg:px-8 lg:py-7",
               viewportLocked && "ktc-viewport-locked-content",
               contentClassName,
             )}

@@ -121,18 +121,18 @@ export function CollectWorkspace() {
     (runQueueQuery.data?.pending_count ?? 0);
 
   return (
-    <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
-      <div className="grid min-h-0 shrink-0 grid-cols-1 border-b lg:h-80 lg:grid-cols-[minmax(0,1.7fr)_minmax(20rem,1fr)] lg:overflow-hidden">
-        <div className="min-h-0 lg:overflow-y-auto lg:border-r">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden border-y border-surface-muted bg-card lg:rounded-xl lg:border">
+      <div className="grid min-h-0 shrink-0 grid-cols-1 border-b border-surface-muted lg:h-80 lg:grid-cols-[minmax(0,1.7fr)_minmax(20rem,1fr)] lg:overflow-hidden">
+        <div className="min-h-0 bg-surface-row lg:overflow-y-auto lg:border-r lg:border-surface-muted">
           <HarvestConsole />
         </div>
-        <div className="flex min-h-0 flex-col lg:overflow-y-auto">
+        <div className="flex min-h-0 flex-col bg-card lg:overflow-y-auto">
           <ActiveRunSummary
             run={activeRun}
             activeCount={activeCount}
             errorMessage={runQueueQuery.error?.message ?? null}
           />
-          <div className="flex flex-col gap-1.5 border-t p-3">
+          <div className="flex flex-col gap-1.5 border-t border-surface-muted bg-surface-subtle/45 p-3">
             <Button
               type="button"
               size="sm"

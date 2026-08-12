@@ -17,11 +17,11 @@ function AlertDialogContent({
 }: AlertDialogPrimitive.Popup.Props) {
   return (
     <AlertDialogPrimitive.Portal>
-      <AlertDialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-foreground/30 transition-opacity duration-150 data-[closed]:opacity-0 data-[open]:opacity-100" />
+      <AlertDialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-foreground/35 transition-opacity duration-150 data-[closed]:opacity-0 data-[open]:opacity-100" />
       <AlertDialogPrimitive.Popup
         data-slot="alert-dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border bg-popover p-6 text-popover-foreground shadow-modal ring-1 ring-border/70 transition-all duration-150 data-[closed]:scale-95 data-[closed]:opacity-0 data-[open]:scale-100 data-[open]:opacity-100",
+          "fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border bg-popover p-6 text-popover-foreground shadow-modal ring-1 ring-border/70 transition-[opacity,transform] duration-150 data-[closed]:scale-95 data-[closed]:opacity-0 data-[open]:scale-100 data-[open]:opacity-100",
           className,
         )}
         {...props}

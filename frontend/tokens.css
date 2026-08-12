@@ -1,0 +1,64 @@
+/* 운영 콘솔 공용 토큰의 정본. 각 컴포넌트는 의미 토큰으로만 색·깊이·전환을 참조한다. */
+:root {
+  --ktc-font-sans: var(--font-sans, Pretendard), Pretendard, "Noto Sans KR",
+    "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+  --ktc-surface-page: #f4f5f0;
+  --ktc-surface-card: #fcfcf9;
+  --ktc-surface-subtle: #edf0e9;
+  --ktc-surface-muted: #dce3d9;
+  --ktc-surface-row: #f8f9f5;
+  --ktc-brand-tint: #e0eee6;
+  --ktc-brand: #1f6b51;
+  --ktc-brand-ink: #104736;
+  --ktc-brand-foreground: #ffffff;
+  --ktc-shell-rail: #143d33;
+  --ktc-shell-rail-soft: #1d4d40;
+  --ktc-shell-rail-text: #e9f3ed;
+  --ktc-shell-rail-muted: #afc8bb;
+
+  --ktc-text-strong: #1d2823;
+  --ktc-text-primary: #29342e;
+  --ktc-text-secondary: #5f6b63;
+  --ktc-text-tertiary: #7e8982;
+  --ktc-text-disabled: #a8b0aa;
+  --ktc-icon-default: #69776e;
+  --ktc-line: #d5ddd3;
+  --ktc-info: #276ec5;
+  --ktc-warning: #95631a;
+  --ktc-success: #27714e;
+  --ktc-destructive: #b23c36;
+
+  --ktc-radius: 0.75rem;
+  --ktc-radius-sm: 0.5rem;
+  --ktc-shadow-card: 0 1px 2px rgb(20 40 31 / 0.04), 0 8px 22px rgb(20 40 31 / 0.035);
+  --ktc-shadow-card-hover: 0 2px 4px rgb(20 40 31 / 0.05), 0 12px 26px rgb(20 40 31 / 0.07);
+  --ktc-shadow-elevated: 0 16px 38px rgb(20 40 31 / 0.13);
+  --ktc-shadow-modal: 0 24px 64px rgb(15 31 24 / 0.2);
+  --ktc-duration-fast: 120ms;
+  --ktc-duration-normal: 180ms;
+  --ktc-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.dark {
+  --ktc-surface-page: #151b17;
+  --ktc-surface-card: #1d2721;
+  --ktc-surface-subtle: #243027;
+  --ktc-surface-muted: #344238;
+  --ktc-surface-row: #202b24;
+  --ktc-brand-tint: #1d4537;
+  --ktc-brand: #82c7a5;
+  --ktc-brand-ink: #b3e3c9;
+  --ktc-brand-foreground: #10251c;
+  --ktc-text-strong: #e8eee9;
+  --ktc-text-primary: #e1e9e3;
+  --ktc-text-secondary: #b1beb5;
+  --ktc-text-tertiary: #8f9d94;
+  --ktc-text-disabled: #6f7d74;
+  --ktc-icon-default: #abb8b0;
+  --ktc-line: #36443a;
+  --ktc-info: #84b8ff;
+  --ktc-warning: #e0b15c;
+  --ktc-success: #83c7a2;
+  --ktc-destructive: #ec8881;
+}

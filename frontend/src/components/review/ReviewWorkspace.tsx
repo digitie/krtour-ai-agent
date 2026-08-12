@@ -2985,12 +2985,12 @@ export function ReviewWorkspace() {
       <div
         className={
           isTriage
-            ? "grid h-full min-h-0 flex-1 grid-cols-1 lg:grid-cols-[15rem_minmax(0,1fr)_minmax(0,1fr)] lg:overflow-hidden"
-            : "grid h-full min-h-0 flex-1 grid-cols-1 lg:grid-cols-3 lg:overflow-hidden"
+            ? "grid h-full min-h-0 flex-1 grid-cols-1 bg-surface-page lg:grid-cols-[15rem_minmax(0,1fr)_minmax(0,0.82fr)] lg:overflow-hidden"
+            : "grid h-full min-h-0 flex-1 grid-cols-1 bg-surface-page lg:grid-cols-[20rem_minmax(0,1fr)_minmax(19rem,0.82fr)] lg:overflow-hidden"
         }
       >
         {isTriage ? (
-          <aside className="flex min-h-0 max-h-[40vh] flex-col gap-3 overflow-y-auto border-b p-3 lg:h-full lg:max-h-none lg:border-r lg:border-b-0">
+          <aside className="flex min-h-0 max-h-[40vh] flex-col gap-3 overflow-y-auto border-b border-surface-muted bg-card p-4 lg:h-full lg:max-h-none lg:border-r lg:border-b-0">
             <div className="flex items-center justify-between gap-2">
               <p className="px-1 text-xs font-medium text-muted-foreground">
                 처리 진행
@@ -3081,7 +3081,7 @@ export function ReviewWorkspace() {
             </p>
           </aside>
         ) : (
-        <aside className="flex min-h-0 max-h-[48vh] flex-col gap-2 overflow-hidden border-b p-3 lg:h-full lg:max-h-none lg:border-r lg:border-b-0">
+        <aside className="flex min-h-0 max-h-[48vh] flex-col gap-3 overflow-hidden border-b border-surface-muted bg-card p-4 lg:h-full lg:max-h-none lg:border-r lg:border-b-0">
           <div className="flex items-center justify-between gap-2">
             <p className="px-1 text-xs font-medium text-muted-foreground">
               {isRemovedView ? "제외·삭제된 후보" : "검수 대기 후보"}
@@ -3589,7 +3589,7 @@ export function ReviewWorkspace() {
         </aside>
         )}
 
-        <section className="flex min-h-0 flex-col gap-4 overflow-y-auto p-5">
+        <section className="flex min-h-0 flex-col gap-5 overflow-y-auto p-4 lg:p-6">
           {selected ? (
             <>
               {deepLinkedCandidateId != null &&
@@ -3739,7 +3739,7 @@ export function ReviewWorkspace() {
                 </div>
               ) : (
                 <>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   ref={searchInputRef}
                   aria-label="외부 장소 검색어"

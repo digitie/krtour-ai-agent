@@ -143,11 +143,14 @@ export function ApiTestPanel() {
   const externalCurl = `curl -H "X-API-Key: <발급받은_read_키>" "https://<REST-API-도메인>${path}"`;
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-      <section className="flex flex-col gap-4 rounded-lg border border-surface-muted bg-card p-4 shadow-[var(--shadow-card)]">
+    <div className="ktc-workspace grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+      <section className="flex flex-col gap-5 rounded-xl border border-surface-muted bg-card p-5 shadow-[var(--shadow-card)]">
         <div>
           <div className="flex items-center gap-1">
-            <h2 className="text-[16px] font-bold">요청</h2>
+            <div>
+              <p className="ktc-eyebrow mb-1">공급 검증</p>
+              <h2 className="text-[18px] font-extrabold tracking-[-0.025em]">요청</h2>
+            </div>
             <HelpTip>
               브라우저는 same-origin BFF를 거쳐 호출하므로 서버 전용 백엔드 키가
               자동 주입됩니다. 외부(비-브라우저)에서는 아래 curl처럼 읽기 전용으로

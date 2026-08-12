@@ -126,11 +126,12 @@ export function SettingsPanel() {
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-      <section className="flex flex-col gap-4 rounded-lg border border-surface-muted bg-card p-4 shadow-[var(--shadow-card)]">
+    <div className="ktc-workspace grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+      <section className="flex flex-col gap-5 rounded-xl border border-surface-muted bg-card p-5 shadow-[var(--shadow-card)]">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-[16px] font-bold">AI 엔진</h2>
+            <p className="ktc-eyebrow mb-1">실행 기준</p>
+            <h2 className="text-[18px] font-extrabold tracking-[-0.025em]">AI 엔진</h2>
             <p className="text-[13px] text-text-secondary">
               저장 즉시 다음 작업부터 적용됩니다.
             </p>
@@ -206,9 +207,10 @@ export function SettingsPanel() {
         ) : null}
       </section>
 
-      <section className="flex flex-col gap-4 rounded-lg border border-surface-muted bg-card p-4 shadow-[var(--shadow-card)]">
+      <section className="flex flex-col gap-5 rounded-xl border border-surface-muted bg-card p-5 shadow-[var(--shadow-card)]">
         <div>
-          <h2 className="text-[16px] font-bold">API 키</h2>
+          <p className="ktc-eyebrow mb-1">연결 관리</p>
+          <h2 className="text-[18px] font-extrabold tracking-[-0.025em]">API 키</h2>
           <p className="text-[13px] text-text-secondary">
             값은 저장 후 화면에 표시되지 않습니다. 비워 두면 기존 값을 유지합니다.
           </p>
@@ -243,10 +245,13 @@ export function SettingsPanel() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-4 rounded-lg border border-surface-muted bg-card p-4 shadow-[var(--shadow-card)]">
+      <section className="flex flex-col gap-5 rounded-xl border border-surface-muted bg-card p-5 shadow-[var(--shadow-card)]">
         <div>
           <div className="flex items-center gap-1">
-            <h2 className="text-[16px] font-bold">외부 공개 API 키</h2>
+            <div>
+              <p className="ktc-eyebrow mb-1">공급 경계</p>
+              <h2 className="text-[18px] font-extrabold tracking-[-0.025em]">외부 공개 API 키</h2>
+            </div>
             <HelpTip>
               외부 소비자의 read 키와 운영 자동화의 admin 키를 발급합니다. 기본 read
               키는 X-API-Key header로 전달하고, 호환용 key query도 DB read 키에만

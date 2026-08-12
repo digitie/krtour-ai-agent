@@ -121,9 +121,13 @@ export function StatusDashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-[16px] font-bold">운영 요약</h2>
+    <div className="ktc-workspace flex flex-col gap-8">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <div>
+          <p className="ktc-eyebrow mb-1">실시간 관측</p>
+          <h2 className="text-[22px] leading-tight font-extrabold tracking-[-0.035em]">운영 요약</h2>
+          <p className="mt-1 text-[13px] text-text-secondary">수집 큐, 저장소, 검수 병목을 한눈에 확인합니다.</p>
+        </div>
         <Button type="button" variant="outline" size="sm" onClick={refresh}>
           <RefreshCwIcon data-icon="inline-start" />
           새로고침
