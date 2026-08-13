@@ -364,7 +364,7 @@ describe("provider response와 Gemini opinion 결합", () => {
     );
   });
 
-  it("Google은 수동 선택 목록에 보이되 Gemini opinion 요청에서는 제외한다", async () => {
+  it("Google은 검수 선택 목록에 보이되 Gemini opinion 요청에서는 제외한다", async () => {
     const allowedGoogle = hit("google", "허용 Google");
     const blockedKakao = hit("kakao", "차단 Kakao", false);
     const allowedNaver = hit("naver", "허용 Naver");

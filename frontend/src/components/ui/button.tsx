@@ -4,16 +4,16 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-[14px] font-bold whitespace-nowrap transition-colors duration-150 outline-none select-none focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/20 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:text-text-disabled aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-[14px] font-bold whitespace-nowrap transition-[background-color,border-color,color,box-shadow,transform] duration-150 outline-none select-none focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/20 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:text-text-disabled aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          "bg-brand text-brand-foreground hover:bg-brand/90 disabled:bg-surface-muted",
+          "bg-brand text-brand-foreground shadow-[var(--shadow-button)] hover:bg-brand-ink hover:shadow-[var(--shadow-card-hover)] disabled:bg-surface-muted",
         outline:
-          "border-border bg-card text-text-primary hover:bg-surface-subtle aria-expanded:bg-surface-subtle aria-expanded:text-text-primary dark:border-input",
+          "border-border bg-card text-text-primary shadow-[0_1px_1px_rgb(20_40_31_/_0.03)] hover:border-brand/30 hover:bg-surface-subtle aria-expanded:bg-surface-subtle aria-expanded:text-text-primary dark:border-input",
         secondary:
-          "bg-brand-tint text-brand hover:bg-brand-tint/80 aria-expanded:bg-brand-tint aria-expanded:text-brand",
+          "bg-brand-tint text-brand hover:bg-brand-tint/75 aria-expanded:bg-brand-tint aria-expanded:text-brand",
         ghost:
           "text-text-secondary hover:bg-surface-subtle hover:text-text-primary aria-expanded:bg-surface-subtle aria-expanded:text-text-primary",
         destructive:

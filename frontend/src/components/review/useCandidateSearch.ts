@@ -296,7 +296,9 @@ export function collectCandidateSearchHits(
 export function collectCandidateOpinionHits(
   hits: readonly PlaceSearchHit[],
 ): PlaceSearchHit[] {
-  return hits.filter(isPlaceHitStorageAllowed);
+  return hits.filter(
+    (hit) => hit.provider !== "google" && isPlaceHitStorageAllowed(hit),
+  );
 }
 
 export function candidateOpinionHitsFingerprint(

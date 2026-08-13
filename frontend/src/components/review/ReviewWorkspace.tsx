@@ -1901,27 +1901,15 @@ export function ReviewWorkspace() {
     setSelectedHit(nextSelectedHit);
     setNearbyConflict(null);
     setFormCandidateId(candidateId);
-    const isGoogleManualSelection = hit.provider === "google";
-    setForm((prev) =>
-      isGoogleManualSelection
-        ? {
-            ...prev,
-            // Google 원본은 표시만 하고 저장하지 않는다. 이전 선택값도 남기지 않아
-            // 검수자가 이름·좌표를 독립적으로 입력한 manual 값만 확정할 수 있다.
-            name: "",
-            latitude: "",
-            longitude: "",
-          }
-        : {
-            ...prev,
-            name: hit.name,
-            latitude: hit.latitude == null ? "" : String(hit.latitude),
-            longitude: hit.longitude == null ? "" : String(hit.longitude),
-          },
-    );
+    setForm((prev) => ({
+      ...prev,
+      name: hit.name,
+      latitude: hit.latitude == null ? "" : String(hit.latitude),
+      longitude: hit.longitude == null ? "" : String(hit.longitude),
+    }));
     // 검색결과 카테고리 매칭이 되면 그 값을 쓰고, 실패하면 후보의 기본 카테고리를 유지한다.
     // 사용자가 드롭다운을 직접 바꾼 뒤에는 자동 매칭으로 덮어쓰지 않는다.
-    if (!isGoogleManualSelection && hit.category && !categoryEdited) {
+    if (hit.category && !categoryEdited) {
       const controller = new AbortController();
       categoryMatchAbortRef.current = controller;
       const requestId = ++categoryMatchRequestRef.current;
@@ -1967,7 +1955,7 @@ export function ReviewWorkspace() {
 
   const activeSelectedHit =
     selectedHit?.candidateId === selected?.id ? selectedHit : null;
-  // 선택 가능 hit(저장 허용 또는 Google 수동 확정 + 좌표 존재)만 렌더 순서대로 모은 단일 정본. 키보드 1–9,
+  // 선택 가능 hit(저장 허용 + 좌표 존재)만 렌더 순서대로 모은 단일 정본. 키보드 1–9,
   // 행 번호 배지, 지도 번호가 모두 이 배열의 같은 index+1을 쓴다(T-187 정합).
   const selectableHits = useMemo(() => selectableSearchHits(allHits), [allHits]);
   const mapHitEntries = useMemo(
@@ -2997,12 +2985,12 @@ export function ReviewWorkspace() {
       <div
         className={
           isTriage
-            ? "grid h-full min-h-0 flex-1 grid-cols-1 lg:grid-cols-[15rem_minmax(0,1fr)_minmax(0,1fr)] lg:overflow-hidden"
-            : "grid h-full min-h-0 flex-1 grid-cols-1 lg:grid-cols-3 lg:overflow-hidden"
+            ? "grid h-full min-h-0 flex-1 grid-cols-1 bg-surface-page lg:grid-cols-[15rem_minmax(0,1fr)_minmax(0,0.82fr)] lg:overflow-hidden"
+            : "grid h-full min-h-0 flex-1 grid-cols-1 bg-surface-page lg:grid-cols-[20rem_minmax(0,1fr)_minmax(19rem,0.82fr)] lg:overflow-hidden"
         }
       >
         {isTriage ? (
-          <aside className="flex min-h-0 max-h-[40vh] flex-col gap-3 overflow-y-auto border-b p-3 lg:h-full lg:max-h-none lg:border-r lg:border-b-0">
+          <aside className="flex min-h-0 max-h-[40vh] flex-col gap-3 overflow-y-auto border-b border-surface-muted bg-card p-4 lg:h-full lg:max-h-none lg:border-r lg:border-b-0">
             <div className="flex items-center justify-between gap-2">
               <p className="px-1 text-xs font-medium text-muted-foreground">
                 처리 진행
@@ -3093,7 +3081,7 @@ export function ReviewWorkspace() {
             </p>
           </aside>
         ) : (
-        <aside className="flex min-h-0 max-h-[48vh] flex-col gap-2 overflow-hidden border-b p-3 lg:h-full lg:max-h-none lg:border-r lg:border-b-0">
+        <aside className="flex min-h-0 max-h-[48vh] flex-col gap-3 overflow-hidden border-b border-surface-muted bg-card p-4 lg:h-full lg:max-h-none lg:border-r lg:border-b-0">
           <div className="flex items-center justify-between gap-2">
             <p className="px-1 text-xs font-medium text-muted-foreground">
               {isRemovedView ? "제외·삭제된 후보" : "검수 대기 후보"}
@@ -3601,7 +3589,7 @@ export function ReviewWorkspace() {
         </aside>
         )}
 
-        <section className="flex min-h-0 flex-col gap-4 overflow-y-auto p-5">
+        <section className="flex min-h-0 flex-col gap-5 overflow-y-auto p-4 lg:p-6">
           {selected ? (
             <>
               {deepLinkedCandidateId != null &&
@@ -3751,7 +3739,7 @@ export function ReviewWorkspace() {
                 </div>
               ) : (
                 <>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   ref={searchInputRef}
                   aria-label="외부 장소 검색어"

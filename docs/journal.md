@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-08-13: 운영 콘솔 전면 리디자인과 n150 실데이터 UI 검증
+
+- **Hallmark 재설계**: 운영 화면을 짙은 숲색 전역 내비게이션과 작업면 중심의 카드·상태·표 계층으로
+  정리했다. 결과·수집·검수·작업·설정과 상태·API의 현재 정보 구조를 보존하고, 모바일에서는 같은
+  항목을 4열 격자로 제공한다. 색상·여백·타이포그래피·상태 토큰은 `frontend/tokens.css`와
+  `design.md`에 기록했다.
+- **검수 작업면**: T-186으로 분리한 검수 큐·검색·선택·확정 흐름을 유지하면서 데스크톱 3열
+  작업면과 좁은 화면의 단일 열 순서로 재구성했다. Google 결과는 검수자가 명시 선택해 저장할 수
+  있지만 Gemini 의견 요청·provider 응답 cache·외부 feature export에는 포함하지 않는다.
+- **n150 실데이터 검증**: API·UI를 재생성하고 health, 로그인 POST 200+Set-Cookie, 잘못된
+  로그인 401, UI 인증 환경값을 확인했다. Ubuntu 26.04의 Playwright Chromium 미지원·시스템
+  브라우저 부재 때문에, SSH 터널을 통해 같은 n150 실서비스를 대상으로 Windows fallback
+  Playwright를 실행해 UI E2E 4개를 통과시켰다. 데스크톱·모바일 검수 화면도 캡처로 확인했다.
+- **추가 검증**: 프런트엔드 타입 검사, Vitest 18개 파일·332개, production build와 Google
+  저장·외부 export 차단을 포함한 실제 PostGIS 백엔드 표적 테스트를 통과했다.
+
+## 2026-08-13: T-186 Google 명시 선택 확정 저장 예외
+
+- **사용자 결정 반영**: 검수자가 명시적으로 선택한 Google Places 결과는 `travel_places`와
+  `provider_evidence_json.review.resolutions[]`의 확정 provenance에 저장하도록 허용했다. 선택한 hit은
+  지도 marker·근접 중복 확인·Gemini 의견 요청과 같은 검수 capability를 쓰며, Web·MCP는 동일한
+  `resolve_candidate` 경계를 통과한다.
+- **정책 경계**: Google/provider 응답 cache는 deny-by-default를 유지한다. `api_source=google` 장소의
+  candidate·mapping은 feature export `PENDING`으로 두고, 기존 ledger는 tombstone으로 회수해 검수 저장이
+  외부 feature export로 번지지 않게 했다.
+- **검증**: 실제 PostGIS에서 Google 검색·service resolve·REST resolve·외부 export 차단/tombstone을
+  검증했다. 상태·캐시·동시성, 키보드·모바일·접근성 두 적대적 리뷰의 최종 delta는
+  BLOCKER/MAJOR/MINOR 0건이었다.
+
 ## 2026-08-11: 검색어 반복 수집 수정·삭제와 검수 provider/응답성 보완
 
 - **검색어 반복 작업**: 반복 검색어를 수정할 수 있도록 `SourceTargetUpdate.query`와 수집

@@ -78,8 +78,8 @@ async def test_search_google_places_normalizes():
     assert hit["latitude"] == 35.0973904
     assert hit["longitude"] == 129.0105924
     assert hit["category"] == "관광 명소"
-    assert hit["storage_allowed"] is False
-    assert "Google Places" in hit["storage_block_reason"]
+    assert hit["storage_allowed"] is True
+    assert hit["storage_block_reason"] is None
 
 
 @pytest.mark.asyncio

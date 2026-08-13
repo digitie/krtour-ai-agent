@@ -336,7 +336,7 @@ Codex 리뷰(§10.5)의 10단계 순서를 실행 계약으로 채택하고, 사
 #### PR-31. 검수 선택 provenance 보존 `[신뢰성 P0]` `[M]` — T-174
 
 - **해결**: C3·C4·C5/B2.
-- **작업 절차**: (a) 선택된 `PlaceSearchHit` 전체를 typed state로 보존(폼 숨은 문자열 금지). (b) provider native ID·검색 query·검색/선택 시각·원본 이름/주소/좌표/카테고리·reviewer를 resolution evidence(JSONB)에 기록 — provider 원본과 사용자 수정 최종값 분리. (c) 허용 provider에 한해 `official_address`/`road_address`/`api_source`를 resolve payload에 전달(**Google은 PR-29 정책 결정 전 저장 차단이 기본**). (d) `create_place` 근접(100m) 병합에 identity gate — 이름·provider ID·좌표 비교, 불확실하면 "기존에 합치기 / 새로 만들기"를 사용자가 선택. (e) category match 응답에 candidate/request identity 확인 또는 abort — 늦은 응답이 다음 후보 폼을 덮어쓰는 race(C5) 제거.
+- **작업 절차**: (a) 선택된 `PlaceSearchHit` 전체를 typed state로 보존(폼 숨은 문자열 금지). (b) provider native ID·검색 query·검색/선택 시각·원본 이름/주소/좌표/카테고리·reviewer를 resolution evidence(JSONB)에 기록 — provider 원본과 사용자 수정 최종값 분리. (c) 허용 provider에 한해 `official_address`/`road_address`/`api_source`를 resolve payload에 전달한다. **후속 사용자 결정(2026-08-13)**으로 검수자가 명시 선택한 Google 결과도 이 확정 경로에 포함하되, provider 응답 cache와 외부 export는 포함하지 않는다. (d) `create_place` 근접(100m) 병합에 identity gate — 이름·provider ID·좌표 비교, 불확실하면 "기존에 합치기 / 새로 만들기"를 사용자가 선택. (e) category match 응답에 candidate/request identity 확인 또는 abort — 늦은 응답이 다음 후보 폼을 덮어쓰는 race(C5) 제거.
 - **완료 기준**: G3.
 
 #### PR-32. 목록 공통 envelope 계약 `[UX·속도 P1]` `[M]` — T-177

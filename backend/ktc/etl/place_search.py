@@ -57,7 +57,7 @@ def _hit(
     category: str | None = None,
 ) -> dict[str, Any]:
     """provider별 응답을 공통 후보 dict로 정규화한다."""
-    storage_allowed = provider != "google"
+    storage_allowed = True
     return {
         "provider": provider,
         "native_id": str(native_id) if native_id is not None else None,
@@ -67,15 +67,11 @@ def _hit(
         "latitude": latitude,
         "longitude": longitude,
         "category": category,
-        # T-158(provider 정책) 결정 전에는 Google Places 결과를 영구 저장하지 않는다.
-        # UI는 검수자의 수동 확정 입력 보조로만 선택을 허용하며, 원본 증거·주소·ID는
-        # resolve payload에서 제거한다. 최종 저장 차단은 place_service가 담당한다.
+        # 2026-08-13 사용자 결정: 검수자가 명시적으로 선택한 Google Places 결과는
+        # 확정 provenance로 저장할 수 있다. 이 capability는 검수 선택만 뜻하며,
+        # provider 응답 cache 정책과는 독립적이다.
         "storage_allowed": storage_allowed,
-        "storage_block_reason": (
-            None
-            if storage_allowed
-            else "provider 정책 결정 전에는 Google Places 결과를 저장할 수 없습니다."
-        ),
+        "storage_block_reason": None,
     }
 
 

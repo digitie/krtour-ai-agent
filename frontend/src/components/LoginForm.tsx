@@ -55,11 +55,12 @@ export function LoginForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="flex w-full max-w-sm flex-col gap-5 rounded-lg border bg-background p-6 shadow-card"
+      className="flex w-full max-w-sm flex-col gap-6 rounded-xl border border-surface-muted bg-card p-6 shadow-[var(--shadow-elevated)]"
     >
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold tracking-tight">관리자 로그인</h1>
-        <p className="text-sm text-muted-foreground">Kor Travel Concierge</p>
+      <div className="flex flex-col gap-1.5">
+        <p className="ktc-eyebrow">운영 콘솔</p>
+        <h1 className="text-[25px] font-extrabold tracking-[-0.04em]">관리자 로그인</h1>
+        <p className="text-sm text-muted-foreground">Korea Travel Concierge</p>
       </div>
 
       <Field>

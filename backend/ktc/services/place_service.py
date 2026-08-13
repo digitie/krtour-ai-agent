@@ -88,10 +88,6 @@ async def acquire_place_lifecycle_lock(session: AsyncSession) -> None:
     )
 
 
-class ProviderPersistenceDisabled(ValueError):
-    """영구 저장이 허용되지 않은 provider 결과가 resolve에 사용됨."""
-
-
 class NearbyPlaceConfirmationRequired(ValueError):
     """근접 장소의 동일성을 확정할 수 없어 사용자 선택이 필요함."""
 
@@ -2271,10 +2267,6 @@ async def resolve_candidate(
         resolution_evidence.get("provider") if resolution_evidence else None
     )
     requested_api_source = data.get("api_source")
-    if selected_provider == "google" or requested_api_source == "google":
-        raise ProviderPersistenceDisabled(
-            "provider 정책 결정 전에는 Google Places 결과를 저장할 수 없다"
-        )
     if selected_provider and requested_api_source not in (None, selected_provider):
         raise ValueError("selected_hit.provider와 api_source가 일치해야 한다")
     if not selected_provider and requested_api_source not in (None, "manual"):
@@ -2439,6 +2431,14 @@ async def resolve_candidate(
     )
     if place is not None:
         mapping = await _ensure_candidate_mapping(session, candidate, place)
+    # 사용자 결정(ADR-43)은 Google Places hit의 검수 선택·확정 provenance 저장만
+    # 허용한다. feature export는 외부 공급 경계이므로, Google 선택 결과를 READY로
+    # 두면 dirty sync가 원본 이름·주소·좌표를 자동 공급하게 된다. PENDING은 새
+    # ledger 발행을 막고, 과거 upsert가 있다면 tombstone으로 회수하는 기존 계약이다.
+    if action in {"match_existing", "create_place"} and selected_provider == "google":
+        candidate.feature_export_status = FeatureExportStatus.PENDING.value
+        if mapping is not None:
+            mapping.feature_export_status = candidate.feature_export_status
     # export payload에 영향을 주는 상태 전이(ignore=reject, match/create=upsert)를 같은
     # 트랜잭션의 dirty outbox에 기록한다(T-171). 다음 공급 GET이 이 후보만 동기화한다.
     await feature_export_service.mark_candidates_dirty(

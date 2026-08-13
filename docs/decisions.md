@@ -1383,6 +1383,50 @@ Google 결과를 지도에서 비교하고도 후보 확정을 시작할 수 없
 
 ---
 
+## ADR-45: Google Places의 명시 선택 검수 확정 저장 범위
+
+- **상태**: 채택 (2026-08-13) — ADR-44의 Google 비영속 수동 확정 결정을 이 범위에서 대체한다.
+- **결정자**: 사용자, AI agent
+
+### 맥락
+
+검수 화면은 Google Places·Kakao·Naver 검색 결과를 비교하지만, ADR-44는 Google 결과를
+수동 입력 보조로만 제한했다. 사용자는 검수자가 명시적으로 선택한 Google Places 결과도
+다른 provider와 같이 장소 확정에 사용할 수 있도록 지시했다. 다만 provider 응답 cache와
+외부 feature export는 별도 정책 경계이며, Google Maps Platform 약관·attribution 리스크도
+해소되지 않았다.
+
+### 결정
+
+- 검수자가 명시적으로 선택한 Google Places hit은 `travel_places`와
+  `provider_evidence_json.review.resolutions[]`에 확정 provenance로 저장할 수 있다. provider
+  native ID·검색 query·검색/선택 시각·원본 필드와 실제 확정값은 기존 resolution 스키마로 분리 보존하고,
+  서버는 검증한 selected provider에서 `api_source=google`을 도출한다.
+- Google hit은 검수 지도 marker·근접 100m 중복 확인·재시도에서 다른 허용 hit과 같은 capability를 쓴다.
+  Web과 MCP는 같은 `resolve_candidate` 도메인 경계를 통과한다.
+- 이 결정은 **검수자가 명시적으로 선택해 확정하는 경로만** 허용한다. `geocoding.py`와 T-170의
+  `PROVIDER_CACHE_POLICY`는 바꾸지 않으며 Google provider 응답 cache는 deny-by-default로 유지한다.
+  Google 원본 `TravelPlace`의 candidate·mapping은 feature export `PENDING`으로 두고 기존 export ledger는
+  tombstone으로 회수해 외부 feature export를 자동 허용하지 않는다.
+- `docs/provider-policy.md`의 약관·attribution·비-Google 지도 표시 리스크는 제거하지 않는다. 저장·표시
+  예외는 사용자가 인지한 운영 결정이며, cache·외부 공급 범위를 넓히려면 별도 결정이 필요하다.
+
+### 결과
+
+- (긍정) 운영자는 provider에 관계없이 검수 근거를 비교한 뒤 명시적으로 선택한 결과를 확정할 수 있고,
+  선택 당시의 provenance가 감사·되돌리기 경로에 남는다.
+- (긍정) feature export 방어 계층이 Google 신규 upsert와 기존 ledger를 모두 막아, 검수 저장 예외가
+  외부 공급으로 번지지 않는다.
+- (부정) Google 정책과의 긴장은 남아 있으며, cache 또는 외부 공급으로 범위를 넓히려면 provider 정책을
+  재검토해야 한다.
+
+### 관련
+
+- ADR-16(장소 매칭 검수 UX), ADR-36(admin proxy), ADR-44(이 범위에서 대체),
+  `docs/provider-policy.md`, T-170 cache 정책과 feature export 정책을 확장한다.
+
+---
+
 ## 이력·대체·보류 ADR (요약)
 
 핵심 구조·기능과 직접 관련된 ADR만 위 본문에 full로 유지한다. 아래는 다른 ADR로 대체되었거나 보류·이력성 결정이라 한 줄 요약으로 보존한 항목이다. 번호는 사라지지 않으며 상세 맥락이 필요하면 git 이력(이전 본문)을 참조한다.

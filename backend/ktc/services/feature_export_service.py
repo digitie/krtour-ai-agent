@@ -305,8 +305,16 @@ def _export_grounding_blocked(candidate: ExtractedPlaceCandidate) -> bool:
     return candidate.grounding_status in _GROUNDING_EXPORT_BLOCK
 
 
+def _export_provider_blocked(place: TravelPlace | None) -> bool:
+    """ADR-43의 Google 선택 저장 예외가 외부 공급으로 번지지 않게 막는다."""
+    return place is not None and place.api_source == "google"
+
+
 def _classify(
-    candidate: ExtractedPlaceCandidate, *, has_row: bool
+    candidate: ExtractedPlaceCandidate,
+    *,
+    place: TravelPlace | None,
+    has_row: bool,
 ) -> tuple[str | None, str | None, str | None]:
     """후보 상태로부터 (operation, export_state, rejection_reason)을 정한다.
 
@@ -335,6 +343,7 @@ def _classify(
         }
         and candidate.matched_place_id is not None
         and not _export_grounding_blocked(candidate)
+        and not _export_provider_blocked(place)
     ):
         return FeatureExportOperation.UPSERT.value, status, None
     # pending/needs_review(또는 grounding 미확인 auto-match): 과거 export가 있으면
@@ -557,8 +566,13 @@ async def _sync_scope(
     for candidate in candidates:
         seen_candidate_ids.add(candidate.id)
         row = existing_by_candidate.get(candidate.id)
+        place = (
+            places.get(candidate.matched_place_id)
+            if candidate.matched_place_id
+            else None
+        )
         operation, export_state, rejection_reason = _classify(
-            candidate, has_row=row is not None
+            candidate, place=place, has_row=row is not None
         )
         if operation is None:
             continue
@@ -571,11 +585,6 @@ async def _sync_scope(
         playlist = (
             playlists.get(candidate.source_playlist_id)
             if candidate.source_playlist_id
-            else None
-        )
-        place = (
-            places.get(candidate.matched_place_id)
-            if candidate.matched_place_id
             else None
         )
         payload = _build_payload(

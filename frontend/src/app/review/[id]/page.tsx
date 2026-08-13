@@ -111,15 +111,15 @@ export default function CandidateDetailPage() {
 
   return (
     <AppShell title="검수 후보 상세">
-      <div className="mx-auto w-full max-w-2xl p-4">
+      <div className="ktc-workspace w-full max-w-3xl">
         <Link
           href="/review"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-text-secondary transition-colors hover:text-brand"
         >
           <ArrowLeftIcon className="size-4" />
           검수 큐로
         </Link>
-        <div className="mt-3 rounded-xl border p-4">
+        <div className="mt-4 rounded-xl border border-surface-muted bg-card p-5 shadow-[var(--shadow-card)]">
           {id != null ? (
             <CandidateDetailView
               candidateId={id}
