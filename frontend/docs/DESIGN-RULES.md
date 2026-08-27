@@ -17,7 +17,7 @@ StyleSeed는 제품 UI가 "생성된 화면"처럼 보이지 않도록 단일 ac
 ## 핵심 규칙
 
 1. 색상은 단일 accent 중심으로 쓴다.
-   `--brand`(green `#2f765f`)는 active nav, 진행률 fill, 선택 상태, 작은 icon/badge에만 쓴다.
+   `--brand`(violet `#7c3aed`)는 active nav, 진행률 fill, 선택 상태, 작은 icon/badge에만 쓴다.
    큰 배경면은 `--surface-*` 토큰을 사용하고, 오류/경고/성공 색은 작은 badge, dot, text에 제한한다.
 
 2. 텍스트는 5단계 grayscale 토큰을 따른다.
@@ -27,15 +27,16 @@ StyleSeed는 제품 UI가 "생성된 화면"처럼 보이지 않도록 단일 ac
 
 3. 카드와 패널은 정보 단위의 경계다.
    운영 화면의 주요 내용은 `Card`, panel, table, map 같은 명확한 영역 안에 둔다.
-   기본 반경은 `kor-travel-map`과 같은 `--radius: 0.625rem`이다.
+   기본 반경은 `kor-travel-geo-ui`와 같은 `--radius: 0.5rem`(8px)이다.
 
 4. 그림자는 아주 약하게 쓴다.
    기본 카드는 `--shadow-card`처럼 4% 수준의 낮은 그림자만 사용한다. modal이나 floating
    표면도 12%(`--shadow-modal`)를 넘기지 않는다. 색이 들어간 그림자는 쓰지 않는다.
 
-5. 조작 대상 크기는 `kor-travel-map` primitive를 따른다.
-   button 기본 높이는 44px(`h-11`), 작은 버튼은 32/40px 계열을 쓴다. input은 40px(`h-10`)과
-   `text-[14px]`를 기본으로 한다. 시각적으로 작은 checkbox도 hit area를 보강한다.
+5. 조작 대상은 최소 44px touch target을 가진다.
+   button 기본 높이는 44px(`h-11`), 작은 버튼은 32/40px 계열을 쓴다. input/textarea도 44px
+   (`h-11`)과 `text-[14px]`를 기본으로 한다(마우스 전용 트리거인 `select`는 예외 — coarse
+   pointer 여부에 따라 44px/32px를 가변 적용). 시각적으로 작은 checkbox도 hit area를 보강한다.
 
 6. label은 작고 일관되게 표시한다.
    폼 label, table header, nav group title은 12px, bold weight, `letter-spacing: 0.05em`,

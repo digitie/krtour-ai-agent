@@ -4,7 +4,38 @@
 
 ---
 
-## 2026-08-13: 운영 콘솔 전면 리디자인과 n150 실데이터 UI 검증
+## 2026-08-27: 브랜드 accent 보라색 전환과 kor-travel-geo look-and-feel 정렬
+
+- **색상 전환**: 운영 콘솔의 단일 accent brand를 초록(`#1f6b51`)에서 보라(violet-600
+  `#7c3aed`/hover violet-700 `#6d28d9`/soft violet-100 `#ede9fe`)로 전환했다. 색 값은
+  서비스별 공용 팔레트 테스트셋(첨부 HTML)의 Purple 항목을 그대로 사용했다. 색은
+  `frontend/tokens.css`(정본) 한 곳만 편집하면 전 화면에 전파되도록 이미 구성돼 있어,
+  다크 사이드바(shell-rail)·다크 모드(현재 미사용, 토글 없음) 변형까지 함께 갱신했다.
+- **kor-travel-geo-ui 세부 정렬**: DESIGN-RULES 3/4에 맞춰 카드·다이얼로그·버튼 반경을
+  12px→8px(`--ktc-radius`, `tailwind.config.ts`의 `rounded-xl`도 토큰에 매핑), 그림자를
+  4~12% 수준의 단일 레이어로 경량화했다. `.ktc-eyebrow`(11px/800/0.11em/brand색 →
+  12px/700/0.04em/text-secondary), `Input`/`Textarea` 높이(40px→44px, DESIGN-RULES 5의
+  44px touch target)와 반경(6px→8px, `Button`/`Select`와 정렬)을 geo 수치에 맞췄다.
+  로그인·오류 패널의 무거운 `shadow-elevated`는 geo의 `.login-panel`/`.app-error-panel`과
+  같은 `shadow-card`로 교체했다. `select.tsx`는 coarse-pointer 인식 가변 높이(마우스 32px/
+  터치 44px)를 이미 갖춘 의도된 설계라 대상에서 제외했고, UI 구성(레이아웃·컴포넌트 구조)
+  자체는 바꾸지 않았다.
+- **적대적 리뷰 2인 교차 확인**: 전문 UI 리뷰어 서브에이전트 2명(브랜드 대비/접근성 렌즈,
+  완결성/일관성 렌즈)이 독립적으로 검토했다. 두 리뷰어가 공통으로 지적한
+  `--shadow-elevated`(전환 후 미사용·`--shadow-modal`과 중복)·`--shadow-button`(tokens.css
+  정본을 우회한 하드코딩)·`AppShell.tsx` 로고 타일의 `rounded-[0.65rem]`(8px 체계에서 이탈)을
+  수정했다. 한 리뷰어만 발견한 다크 모드 `--ktc-brand-foreground`의 초록 잔존값,
+  `frontend/docs/DESIGN-RULES.md` 자체에 남아 있던 구 초록 hex·0.625rem 반경·40px input
+  높이 문서 기술도 함께 정정했다. `Input`/`Textarea`의 `rounded-md`(6px)를 `Button`/`Select`/
+  geo의 `.field input`과 같은 `rounded-lg`(8px)로 맞췄고, `globals.css` 상단의 (이미 후속
+  `@layer base`에 완전히 가려지는) 구 초록 fallback 블록 값도 landmine 방지 차원에서 함께
+  갱신했다. `select.tsx` 44px/32px 가변 높이로 인해 일부 화면에서 `Input`(44px)과
+  `SelectTrigger`(32px)의 정렬 격차가 넓어진 점은 n150에서 실화면으로 확인 후 필요 시에만
+  후속 조치하기로 남겼다. 두 리뷰어 모두 BLOCKER 없음, 병합 승인.
+- **검증**: frontend lint·`tsc --noEmit`·Vitest 332건·production build(`next build --webpack`)
+  통과. 인증이 필요한 화면(대시보드·검수·다이얼로그)은 로컬에 서명된 세션 쿠키를 재현할 수
+  없어 로그인 화면만 로컬 렌더로 확인했고, 인증 화면은 n150 실배포 후 실 로그인으로 라이브
+  E2E 확인한다(진행 중, 상세는 후속 기록 참조).
 
 - **Hallmark 재설계**: 운영 화면을 짙은 숲색 전역 내비게이션과 작업면 중심의 카드·상태·표 계층으로
   정리했다. 결과·수집·검수·작업·설정과 상태·API의 현재 정보 구조를 보존하고, 모바일에서는 같은

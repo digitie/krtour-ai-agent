@@ -27,6 +27,12 @@
 
 ## 완료
 
+- [x] **브랜드 accent 보라색 전환·kor-travel-geo look-and-feel 정렬**: 단일 accent brand를
+  초록에서 보라(violet-600/700/100)로 전환하고, 카드·다이얼로그·버튼 반경(12px→8px)·그림자
+  경량화·`Input`/`Textarea` 44px/8px 정렬·`.ktc-eyebrow` 수치를 kor-travel-geo-ui
+  DESIGN-RULES에 맞췄다. 로드맵 T-번호 없이 사용자 지시로 착수. 전문 UI 리뷰어 서브에이전트
+  2명의 교차 검토로 발견한 미사용 shadow 토큰·정본 우회 하드코딩·로고 타일 반경 이탈·문서
+  drift를 함께 정정했다. 상세는 `docs/journal.md` 2026-08-27 항목 참조.
 - [x] **검색어 반복 수집 수정·삭제 및 검수 응답성 개선**: 반복 검색어를 수정할 수 있는
   `PATCH /source-targets/{id}`·수정 다이얼로그를 추가하고, 삭제는 watermark·수집 이력은
   보존한 논리 삭제로 유지했다. 수정/삭제/즉시 실행과 감사 로그를 같은 transaction으로

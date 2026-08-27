@@ -9,6 +9,7 @@ const config: Config = {
     extend: {
       borderRadius: {
         "4xl": "2rem",
+        xl: "var(--radius)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
@@ -92,7 +93,6 @@ const config: Config = {
       boxShadow: {
         card: "var(--shadow-card)",
         "card-hover": "var(--shadow-card-hover)",
-        elevated: "var(--shadow-elevated)",
         button: "var(--shadow-button)",
         modal: "var(--shadow-modal)",
       },
