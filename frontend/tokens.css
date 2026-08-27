@@ -8,14 +8,14 @@
   --ktc-surface-subtle: #edf0e9;
   --ktc-surface-muted: #dce3d9;
   --ktc-surface-row: #f8f9f5;
-  --ktc-brand-tint: #e0eee6;
-  --ktc-brand: #1f6b51;
-  --ktc-brand-ink: #104736;
+  --ktc-brand-tint: #ede9fe;
+  --ktc-brand: #7c3aed;
+  --ktc-brand-ink: #6d28d9;
   --ktc-brand-foreground: #ffffff;
-  --ktc-shell-rail: #143d33;
-  --ktc-shell-rail-soft: #1d4d40;
-  --ktc-shell-rail-text: #e9f3ed;
-  --ktc-shell-rail-muted: #afc8bb;
+  --ktc-shell-rail: #2e1065;
+  --ktc-shell-rail-soft: #4c1d95;
+  --ktc-shell-rail-text: #f5f3ff;
+  --ktc-shell-rail-muted: #c4b5fd;
 
   --ktc-text-strong: #1d2823;
   --ktc-text-primary: #29342e;
@@ -29,12 +29,13 @@
   --ktc-success: #27714e;
   --ktc-destructive: #b23c36;
 
-  --ktc-radius: 0.75rem;
-  --ktc-radius-sm: 0.5rem;
-  --ktc-shadow-card: 0 1px 2px rgb(20 40 31 / 0.04), 0 8px 22px rgb(20 40 31 / 0.035);
-  --ktc-shadow-card-hover: 0 2px 4px rgb(20 40 31 / 0.05), 0 12px 26px rgb(20 40 31 / 0.07);
-  --ktc-shadow-elevated: 0 16px 38px rgb(20 40 31 / 0.13);
-  --ktc-shadow-modal: 0 24px 64px rgb(15 31 24 / 0.2);
+  /* kor-travel-geo-ui DESIGN-RULES 3/4: 카드 반경 8px, 그림자는 4~12% 수준으로 아주 약하게. */
+  --ktc-radius: 0.5rem;
+  --ktc-radius-sm: 0.375rem;
+  --ktc-shadow-card: 0 1px 3px rgb(15 23 42 / 0.04);
+  --ktc-shadow-card-hover: 0 2px 4px rgb(15 23 42 / 0.08);
+  --ktc-shadow-button: 0 1px 3px rgb(15 23 42 / 0.06);
+  --ktc-shadow-modal: 0 8px 24px rgb(15 23 42 / 0.12);
   --ktc-duration-fast: 120ms;
   --ktc-duration-normal: 180ms;
   --ktc-ease: cubic-bezier(0.2, 0, 0, 1);
@@ -46,10 +47,10 @@
   --ktc-surface-subtle: #243027;
   --ktc-surface-muted: #344238;
   --ktc-surface-row: #202b24;
-  --ktc-brand-tint: #1d4537;
-  --ktc-brand: #82c7a5;
-  --ktc-brand-ink: #b3e3c9;
-  --ktc-brand-foreground: #10251c;
+  --ktc-brand-tint: #3b1670;
+  --ktc-brand: #a78bfa;
+  --ktc-brand-ink: #ddd6fe;
+  --ktc-brand-foreground: #1e1b4b;
   --ktc-text-strong: #e8eee9;
   --ktc-text-primary: #e1e9e3;
   --ktc-text-secondary: #b1beb5;
