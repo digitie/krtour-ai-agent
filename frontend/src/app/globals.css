@@ -13,13 +13,16 @@
     --font-heading: var(--font-sans);
   }
   :root {
-    /* kor-travel-map admin frontend와 같은 웜 그레이 surface, 그린 accent, 낮은 shadow 토큰. */
+    /* kor-travel-map admin frontend와 같은 웜 그레이 surface, 브랜드 accent, 낮은 shadow 토큰.
+       실제 값은 아래 두 번째 `@layer base :root` (tokens.css 매핑)이 같은 layer에서 뒤에
+       나와 덮어쓴다 — 이 블록은 그 매핑이 제거될 경우의 fallback이므로 브랜드/반경/그림자
+       값을 tokens.css와 항상 맞춰 둔다. */
     --surface-page: #f7f8f6;
     --surface-card: #ffffff;
     --surface-subtle: #f2f5f1;
     --surface-muted: #e3e8e2;
     --surface-row: #fafbf9;
-    --brand-tint: #e7f2ee;
+    --brand-tint: #ede9fe;
     --text-strong: #3c3f3d;
     --text-primary: #3c3f3d;
     --text-secondary: #68706b;
@@ -27,9 +30,9 @@
     --text-disabled: #b5bdb7;
     --icon-default: #7c857f;
     --line: #d7ded8;
-    --brand: #2f765f;
+    --brand: #7c3aed;
     --brand-foreground: #ffffff;
-    --brand-ink: #1f4d3f;
+    --brand-ink: #6d28d9;
     --info: #3b82f6;
     --warning: #8a5a12;
     --success: #33683f;
@@ -37,11 +40,10 @@
     --warn: var(--warning);
     --danger: var(--destructive);
     --ok: var(--success);
-    --shadow-card: 0 1px 3px rgb(60 63 61 / 0.04);
-    --shadow-card-hover: 0 2px 4px rgb(60 63 61 / 0.08);
-    --shadow-elevated: 0 4px 12px rgb(60 63 61 / 0.08);
-    --shadow-button: 0 1px 3px rgb(60 63 61 / 0.06);
-    --shadow-modal: 0 8px 24px rgb(60 63 61 / 0.12);
+    --shadow-card: 0 1px 3px rgb(15 23 42 / 0.04);
+    --shadow-card-hover: 0 2px 4px rgb(15 23 42 / 0.08);
+    --shadow-button: 0 1px 3px rgb(15 23 42 / 0.06);
+    --shadow-modal: 0 8px 24px rgb(15 23 42 / 0.12);
     --duration-fast: 120ms;
     --duration-normal: 200ms;
     --ease-default: cubic-bezier(0.2, 0, 0, 1);
@@ -70,7 +72,7 @@
     --chart-3: #c4ccc5;
     --chart-4: #8a948e;
     --chart-5: #59625c;
-    --radius: 0.625rem;
+    --radius: 0.5rem;
     --sidebar: var(--surface-card);
     --sidebar-foreground: var(--text-strong);
     --sidebar-primary: var(--brand);
@@ -86,9 +88,9 @@
     --surface-subtle: #222720;
     --surface-muted: #30372f;
     --surface-row: #20241f;
-    --brand: #78c7ad;
-    --brand-foreground: #10201a;
-    --brand-tint: #1f3a31;
+    --brand: #a78bfa;
+    --brand-foreground: #1e1b4b;
+    --brand-tint: #3b1670;
     --text-strong: #e5ebe7;
     --text-primary: #e5ebe7;
     --text-secondary: #b5beb8;
@@ -105,7 +107,6 @@
     --ok: var(--success);
     --shadow-card: 0 1px 3px rgb(8 12 10 / 0.08);
     --shadow-card-hover: 0 2px 4px rgb(8 12 10 / 0.12);
-    --shadow-elevated: 0 4px 12px rgb(8 12 10 / 0.12);
     --shadow-modal: 0 8px 24px rgb(8 12 10 / 0.18);
     --background: var(--surface-page);
     --foreground: var(--text-primary);
@@ -225,8 +226,7 @@
     --ok: var(--success);
     --shadow-card: var(--ktc-shadow-card);
     --shadow-card-hover: var(--ktc-shadow-card-hover);
-    --shadow-elevated: var(--ktc-shadow-elevated);
-    --shadow-button: 0 1px 2px rgb(20 40 31 / 0.08);
+    --shadow-button: var(--ktc-shadow-button);
     --shadow-modal: var(--ktc-shadow-modal);
     --duration-fast: var(--ktc-duration-fast);
     --duration-normal: var(--ktc-duration-normal);
@@ -301,10 +301,10 @@
   }
 
   .ktc-eyebrow {
-    color: var(--brand);
-    font-size: 0.6875rem;
-    font-weight: 800;
-    letter-spacing: 0.11em;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     line-height: 1.25;
     text-transform: uppercase;
   }

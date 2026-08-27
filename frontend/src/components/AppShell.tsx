@@ -97,7 +97,7 @@ export function AppShell({
                 className="group flex min-w-0 flex-1 items-center gap-2 text-[var(--shell-rail-text)] no-underline lg:gap-3"
                 href="/"
               >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-[0.65rem] border border-white/15 bg-white/10 text-white transition-[background-color,border-color] duration-150 group-hover:border-white/30 group-hover:bg-white/15 lg:size-10">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/10 text-white transition-[background-color,border-color] duration-150 group-hover:border-white/30 group-hover:bg-white/15 lg:size-10">
                   <MapIcon className="size-4 lg:size-[18px]" />
                 </span>
                 <span className="min-w-0">

@@ -78,7 +78,7 @@ export function AppErrorPanel({ error, reset }: AppErrorPanelProps) {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-surface-page p-6">
-      <div className="w-full max-w-md rounded-xl border border-line bg-card p-6 shadow-[var(--shadow-elevated)]">
+      <div className="w-full max-w-md rounded-xl border border-line bg-card p-6 shadow-card">
         <p className="ktc-eyebrow">
           UI Runtime Error
         </p>
