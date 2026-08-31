@@ -7,6 +7,11 @@
 /* geo UI는 light 전용 운영 콘솔이다. dark:는 OS prefers-color-scheme가 아니라 .dark 클래스
    하위에서만 적용한다(현재 토글 없음 → 항상 light). */
 @custom-variant dark (&:is(.dark *));
+@custom-variant data-checked (&[data-checked]);
+@custom-variant data-active (&[data-active]);
+@custom-variant data-interactive (&[data-interactive]);
+@custom-variant data-horizontal (&[data-orientation="horizontal"]);
+@custom-variant data-vertical (&[data-orientation="vertical"]);
 
 @layer base {
   .theme {
@@ -23,6 +28,7 @@
     --surface-muted: #e3e8e2;
     --surface-row: #fafbf9;
     --brand-tint: #ede9fe;
+    --brand-hover: #6d28d9;
     --text-strong: #3c3f3d;
     --text-primary: #3c3f3d;
     --text-secondary: #68706b;
@@ -37,6 +43,13 @@
     --warning: #8a5a12;
     --success: #33683f;
     --destructive: #b3322c;
+    --info-tint: #e7f0fc;
+    --warning-tint: #fbf0d9;
+    --success-tint: #e7f3ec;
+    --destructive-tint: #fde9e7;
+    --control-line: #aab5ad;
+    --focus: #6d28d9;
+    --overlay: rgb(29 40 35 / 0.5);
     --warn: var(--warning);
     --danger: var(--destructive);
     --ok: var(--success);
@@ -44,9 +57,16 @@
     --shadow-card-hover: 0 2px 4px rgb(15 23 42 / 0.08);
     --shadow-button: 0 1px 3px rgb(15 23 42 / 0.06);
     --shadow-modal: 0 8px 24px rgb(15 23 42 / 0.12);
+    --shadow-elevated: 0 4px 12px rgb(15 23 42 / 0.1);
     --duration-fast: 120ms;
     --duration-normal: 200ms;
     --ease-default: cubic-bezier(0.2, 0, 0, 1);
+    --ease-out: cubic-bezier(0.2, 0, 0, 1);
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --radius-control: 0.375rem;
+    --radius-panel: 0.5rem;
+    --control-height: 2.25rem;
+    --control-height-sm: 1.875rem;
 
     /* --- shadcn 토큰을 위 semantic 값에 매핑한다(단일 accent = brand). --- */
     --background: var(--surface-page);
@@ -65,8 +85,8 @@
     --accent-foreground: var(--brand);
     --destructive-foreground: var(--brand-foreground);
     --border: var(--line);
-    --input: var(--line);
-    --ring: var(--brand);
+    --input: var(--control-line);
+    --ring: var(--focus);
     --chart-1: var(--brand);
     --chart-2: #9fb8ad;
     --chart-3: #c4ccc5;
@@ -91,6 +111,7 @@
     --brand: #a78bfa;
     --brand-foreground: #1e1b4b;
     --brand-tint: #3b1670;
+    --brand-hover: #ddd6fe;
     --text-strong: #e5ebe7;
     --text-primary: #e5ebe7;
     --text-secondary: #b5beb8;
@@ -102,12 +123,20 @@
     --warning: #d9a441;
     --info: #7aa7ff;
     --destructive: #e17870;
+    --info-tint: #1d3048;
+    --warning-tint: #47351a;
+    --success-tint: #1d3b2b;
+    --destructive-tint: #482321;
+    --control-line: #66756a;
+    --focus: #c4b5fd;
+    --overlay: rgb(5 8 6 / 0.68);
     --warn: var(--warning);
     --danger: var(--destructive);
     --ok: var(--success);
     --shadow-card: 0 1px 3px rgb(8 12 10 / 0.08);
     --shadow-card-hover: 0 2px 4px rgb(8 12 10 / 0.12);
     --shadow-modal: 0 8px 24px rgb(8 12 10 / 0.18);
+    --shadow-elevated: 0 4px 12px rgb(8 12 10 / 0.16);
     --background: var(--surface-page);
     --foreground: var(--text-primary);
     --card: var(--surface-card);
@@ -124,8 +153,8 @@
     --accent-foreground: var(--brand);
     --destructive-foreground: var(--brand-foreground);
     --border: var(--line);
-    --input: #3a4239;
-    --ring: var(--brand);
+    --input: var(--control-line);
+    --ring: var(--focus);
     --chart-1: var(--brand);
     --chart-2: #5c7f70;
     --chart-3: #46504a;
@@ -141,7 +170,7 @@
     --sidebar-ring: var(--brand);
   }
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   html,
   body {
@@ -149,11 +178,12 @@
   }
   body {
     @apply bg-surface-page text-text-primary antialiased;
-    font-family:
-      var(--font-sans, Pretendard), Pretendard, "Noto Sans KR",
-      "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    font-family: var(--ktc-font-sans);
+    font-feature-settings: "kern" 1, "tnum" 1;
+    letter-spacing: -0.012em;
   }
-  a {
+  a:not([class]),
+  .prose a {
     @apply text-brand underline-offset-4 hover:underline;
   }
   button,
@@ -164,6 +194,7 @@
   }
   html {
     @apply font-sans;
+    overflow-x: clip;
   }
 }
 
@@ -191,6 +222,11 @@
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+
+  .animate-spin {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
+  }
 }
 
 /* Hallmark 리디자인: 기존 semantic 이름을 유지한 채 토큰 정본(frontend/tokens.css)으로
@@ -206,6 +242,7 @@
     --brand: var(--ktc-brand);
     --brand-foreground: var(--ktc-brand-foreground);
     --brand-ink: var(--ktc-brand-ink);
+    --brand-hover: var(--ktc-brand-hover);
     --shell-rail: var(--ktc-shell-rail);
     --shell-rail-soft: var(--ktc-shell-rail-soft);
     --shell-rail-text: var(--ktc-shell-rail-text);
@@ -217,10 +254,17 @@
     --text-disabled: var(--ktc-text-disabled);
     --icon-default: var(--ktc-icon-default);
     --line: var(--ktc-line);
+    --control-line: var(--ktc-control-line);
+    --focus: var(--ktc-focus);
+    --overlay: var(--ktc-overlay);
     --info: var(--ktc-info);
+    --info-tint: var(--ktc-info-tint);
     --warning: var(--ktc-warning);
+    --warning-tint: var(--ktc-warning-tint);
     --success: var(--ktc-success);
+    --success-tint: var(--ktc-success-tint);
     --destructive: var(--ktc-destructive);
+    --destructive-tint: var(--ktc-destructive-tint);
     --warn: var(--warning);
     --danger: var(--destructive);
     --ok: var(--success);
@@ -228,10 +272,17 @@
     --shadow-card-hover: var(--ktc-shadow-card-hover);
     --shadow-button: var(--ktc-shadow-button);
     --shadow-modal: var(--ktc-shadow-modal);
+    --shadow-elevated: var(--ktc-shadow-elevated);
     --duration-fast: var(--ktc-duration-fast);
     --duration-normal: var(--ktc-duration-normal);
     --ease-default: var(--ktc-ease);
+    --ease-out: var(--ktc-ease);
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
     --radius: var(--ktc-radius);
+    --radius-control: var(--ktc-radius-control);
+    --radius-panel: var(--ktc-radius-panel);
+    --control-height: var(--ktc-control-height);
+    --control-height-sm: var(--ktc-control-height-sm);
     --background: var(--surface-page);
     --foreground: var(--text-strong);
     --card: var(--surface-card);
@@ -248,8 +299,8 @@
     --accent-foreground: var(--brand-ink);
     --destructive-foreground: var(--brand-foreground);
     --border: var(--line);
-    --input: var(--line);
-    --ring: var(--brand);
+    --input: var(--control-line);
+    --ring: var(--focus);
     --sidebar: var(--shell-rail);
     --sidebar-foreground: var(--shell-rail-text);
     --sidebar-primary: var(--brand);
@@ -272,7 +323,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--brand) 72%, white);
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
 

@@ -288,7 +288,7 @@ function BulkProgressSummary({
   progress: ReviewBulkProgressSummary;
 }) {
   return (
-    <div className="rounded-lg border bg-muted/30 p-3 text-xs">
+    <div className="rounded-control border border-border bg-surface-subtle p-3 text-xs">
       <BulkProgress processed={progress.processed} total={progress.total} />
       <p className="mt-2 text-muted-foreground">
         서버 응답으로 확인됨: 성공 {formatCount(progress.succeeded)}건 · 충돌{" "}
@@ -304,7 +304,7 @@ function RecoveryNotice({ intent }: { intent: ReviewBulkIntent }) {
     return (
       <div
         role="note"
-        className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-xs text-warning"
+        className="rounded-control border border-warning bg-warning-tint p-3 text-xs text-warning"
       >
         <p className="font-medium">해외 판정 기준을 확인하세요.</p>
         <p className="mt-1">
@@ -316,13 +316,13 @@ function RecoveryNotice({ intent }: { intent: ReviewBulkIntent }) {
   }
   if (intent.action === "reopen") {
     return (
-      <p className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
+      <p className="rounded-control bg-surface-subtle p-3 text-xs text-text-secondary">
         복구한 후보는 검수 대기 목록으로 돌아갑니다.
       </p>
     );
   }
   return (
-    <p className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
+    <p className="rounded-control bg-surface-subtle p-3 text-xs text-text-secondary">
       {intent.action === "delete" ? "삭제" : "제외"}한 후보는 제외·삭제 목록에서
       다시 복구할 수 있습니다.
     </p>
@@ -331,7 +331,7 @@ function RecoveryNotice({ intent }: { intent: ReviewBulkIntent }) {
 
 function ProgressPersistenceNotice() {
   return (
-    <p role="note" className="rounded-lg border p-3 text-xs text-muted-foreground">
+    <p role="note" className="rounded-control border border-border p-3 text-xs text-text-secondary">
       실행 중에는 이 창만 닫아도 작업은 계속되지만, 페이지를 새로고침하거나 탭을 닫으면
       현재 진행 정보를 잃습니다. 이 경우 최신 대상을 다시 미리보기해 남은 항목을
       확인하세요.
@@ -481,11 +481,11 @@ export function ReviewBulkPanel({
         aria-label="일괄 검수 도구"
         aria-busy={bulkBusy}
         className={cn(
-          "rounded-lg outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+          "rounded-panel focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
           className,
         )}
       >
-        <div className="sticky bottom-0 z-30 flex flex-col gap-2 border-y bg-background/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur lg:static lg:rounded-lg lg:border lg:p-2 lg:shadow-none">
+        <div className="sticky bottom-0 z-30 flex flex-col gap-2 border-y border-border bg-surface-page px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] lg:static lg:rounded-panel lg:border lg:p-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p role="status" aria-live="polite" aria-atomic="true" className="text-xs font-medium">
               {status ??
@@ -616,7 +616,7 @@ export function ReviewBulkPanel({
             ) : null}
 
             {dialogState.phase === "ready" && dialogState.expiresAtLabel ? (
-              <p className="rounded-lg border px-3 py-2 text-xs text-muted-foreground">
+              <p className="rounded-control border border-border px-3 py-2 text-xs text-text-secondary">
                 확인 유효 시간: {dialogState.expiresAtLabel}
               </p>
             ) : null}
@@ -631,7 +631,7 @@ export function ReviewBulkPanel({
             ) : null}
 
             {dialogState.phase === "partial" ? (
-              <p role="alert" className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-xs text-warning">
+              <p role="alert" className="rounded-control border border-warning bg-warning-tint p-3 text-xs text-warning">
                 {dialogState.message ??
                   `상태 충돌 ${formatCount(dialogState.conflictCount)}건은 목록에서 직접 다시 선택해야 하며, 처리 실패 ${formatCount(dialogState.failedCount)}건만 다시 확인할 수 있습니다.`}
               </p>
@@ -645,7 +645,7 @@ export function ReviewBulkPanel({
 
             {dialogState.phase === "failed" &&
             dialogState.currentChunkOutcomeUnknown ? (
-              <p role="alert" className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-xs text-warning">
+              <p role="alert" className="rounded-control border border-warning bg-warning-tint p-3 text-xs text-warning">
                 {dialogState.retryable
                   ? "현재 묶음은 응답이 끊겨 반영 여부를 알 수 없습니다. 새 request로 넘기지 말고 같은 묶음을 다시 요청해 저장된 처리 결과를 확인해야 합니다."
                   : "현재 묶음의 응답 계약을 신뢰할 수 없어 반영 여부를 알 수 없습니다. 확인 token은 폐기했으므로 목록을 새로고침해 실제 상태를 확인해야 합니다."}

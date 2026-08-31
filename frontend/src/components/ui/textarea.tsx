@@ -2,13 +2,16 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-// kor-travel-map admin frontend의 textarea primitive와 동일 — Input과 같은 토큰/포커스 규칙.
+// Input과 같은 surface·focus recipe를 사용해 폼 컨트롤의 리듬을 맞춘다.
 function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
   return (
     <textarea
       data-slot="textarea"
       className={cn(
-        "min-h-24 w-full min-w-0 rounded-lg border border-input bg-card px-3 py-2 text-[14px] transition-colors outline-none placeholder:text-text-tertiary focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/20 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-text-disabled aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:bg-card dark:disabled:bg-surface-muted dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+        "min-h-24 w-full min-w-0 rounded-control border border-input bg-card px-3 py-2 text-sm text-text-primary transition-[color,background-color,border-color] duration-fast ease-out placeholder:text-text-tertiary",
+        "hover:bg-surface-subtle focus-visible:border-text-secondary focus-visible:bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+        "disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:opacity-55 read-only:cursor-default read-only:bg-surface-subtle read-only:text-text-secondary",
+        "aria-invalid:border-destructive",
         className,
       )}
       {...props}

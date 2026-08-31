@@ -159,9 +159,9 @@ function VideoStatsSection({
         ) : stats.length === 0 ? (
           <EmptyState>수집된 영상이 없습니다.</EmptyState>
         ) : (
-          <div className="max-h-[34rem] overflow-auto rounded-lg border border-surface-muted">
-            <table className="w-full min-w-[60rem] text-[13px]">
-              <thead className="sticky top-0 z-10 bg-surface-subtle text-left text-[12px] font-bold text-text-secondary">
+          <div className="max-h-[34rem] overflow-auto rounded-panel border border-border">
+            <table className="w-full min-w-[60rem] text-sm">
+              <thead className="sticky top-0 z-10 bg-surface-subtle text-left text-xs font-semibold text-text-secondary">
                 <tr>
                   <th className="px-3 py-2">영상</th>
                   <th className="px-3 py-2">POI</th>
@@ -200,7 +200,7 @@ function VideoStatRows({ stat }: { stat: RunVideoStat }) {
 
   return (
     <Fragment>
-      <tr className="border-t border-surface-muted">
+      <tr className="border-t border-border">
         <td className="px-3 py-2 align-top">
           <a
             href={stat.url}
@@ -271,12 +271,12 @@ function VideoStatRows({ stat }: { stat: RunVideoStat }) {
         </td>
       </tr>
       {showTranscript ? (
-        <tr className="border-t border-surface-muted bg-surface-row">
+        <tr className="border-t border-border bg-surface-row">
           <td colSpan={4} className="px-3 py-3">
             {transcriptQuery.isLoading ? (
               <EmptyState>불러오는 중...</EmptyState>
             ) : transcriptQuery.data?.text ? (
-              <pre className="max-h-72 overflow-y-auto rounded-lg border border-surface-muted bg-surface-subtle p-3 text-xs whitespace-pre-wrap">
+              <pre className="max-h-72 overflow-y-auto rounded-control border border-border bg-surface-subtle p-3 text-xs whitespace-pre-wrap">
                 {transcriptQuery.data.text}
               </pre>
             ) : (

@@ -25,7 +25,7 @@ export function HelpTip({
           <button
             type="button"
             aria-label={label}
-            className="relative inline-flex size-5 shrink-0 items-center justify-center rounded-full text-text-tertiary transition-colors outline-none after:absolute after:-inset-2 hover:bg-surface-subtle hover:text-text-primary focus-visible:ring-3 focus-visible:ring-brand/20"
+            className="relative inline-flex size-5 shrink-0 items-center justify-center rounded-full text-text-tertiary transition-[color,background-color] duration-fast ease-out after:absolute after:-inset-2 hover:bg-surface-subtle hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             <CircleHelpIcon className="size-3.5" />
           </button>

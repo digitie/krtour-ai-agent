@@ -78,7 +78,7 @@ export function JobStatusLink({
         aria-label={`작업 상태: 실행 ${runningCount}, 대기 ${pendingCount}, 확인 필요 ${openAttentionCount}. ${summary}`}
         title={`작업 상태 · 실행 ${runningCount} · 대기 ${pendingCount} · 확인 필요 ${openAttentionCount} · ${summary}`}
         className={cn(
-          "inline-flex h-9 min-w-9 shrink-0 items-center justify-center gap-1 rounded-lg border border-surface-muted bg-surface-subtle px-2 text-[12px] font-bold transition-colors hover:border-brand/40 hover:bg-brand-tint",
+          "inline-flex h-control-sm min-w-[1.875rem] shrink-0 items-center justify-center gap-1 rounded-control border border-input bg-transparent px-2 text-xs font-medium no-underline transition-[color,background-color,border-color] duration-fast ease-out hover:border-white/25 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
           className,
         )}
       >
@@ -87,7 +87,7 @@ export function JobStatusLink({
         ) : (
           <ListChecksIcon className="size-3.5 shrink-0 text-text-secondary" />
         )}
-        <span className="tabular-nums text-text-primary">
+          <span className="tabular-nums text-current">
           {activeCount}
         </span>
         {queueQuery.isError ? (
@@ -109,7 +109,7 @@ export function JobStatusLink({
       href={statusHref}
       aria-label={`작업 상태: 실행 ${runningCount}, 대기 ${pendingCount}, 확인 필요 ${openAttentionCount}. ${summary}`}
       className={cn(
-        "inline-flex h-8 min-w-0 max-w-full items-center gap-1.5 rounded-full border border-surface-muted bg-surface-subtle px-2.5 text-[12px] transition-colors hover:border-brand/40 hover:bg-brand-tint",
+        "inline-flex h-control-sm min-w-0 max-w-full items-center gap-1.5 rounded-control border border-border bg-surface-subtle px-2.5 text-xs transition-[color,background-color,border-color] duration-fast ease-out hover:border-brand hover:bg-brand-tint",
         className,
       )}
     >

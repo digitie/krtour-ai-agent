@@ -2,13 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  AlertTriangleIcon,
-  DatabaseIcon,
-  HardDriveIcon,
-  ListChecksIcon,
-  RefreshCwIcon,
-} from "lucide-react";
+import { RefreshCwIcon } from "lucide-react";
 
 import {
   getMetrics,
@@ -32,10 +26,10 @@ import {
   CountList,
   EmptyState,
   Metric,
-  MetricCard,
   Panel,
   Section,
 } from "@/components/panels";
+import { StatStrip } from "@/components/StatStrip";
 
 function auditActionLabel(value: string): string {
   if (value.includes("settings")) return "설정";
@@ -134,45 +128,47 @@ export function StatusDashboard() {
         </Button>
       </div>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          icon={<ListChecksIcon className="size-4" />}
-          label="실행 큐"
-          value={`실행 ${runningCount} · 대기 ${pendingCount} · 확인 필요 ${openAttentionCount}`}
-          tone={
-            openAttentionCount > 0
-              ? "warn"
-              : runningCount > 0
-                ? "active"
-                : "neutral"
-          }
-          href={openAttentionCount > 0 ? "/jobs?attention=open" : "/jobs"}
-        />
-        <MetricCard
-          icon={<DatabaseIcon className="size-4" />}
-          label="DB 장소/영상"
-          value={`${asNum(db.travel_places).toLocaleString()} 장소 · ${asNum(
-            db.youtube_videos,
-          ).toLocaleString()} 영상`}
-        />
-        <MetricCard
-          icon={<HardDriveIcon className="size-4" />}
-          label="RustFS"
-          value={`${storage?.health?.ok || rustfs?.health?.ok ? "정상" : "확인 필요"} · ${formatBytes(
-            storage?.total_size_bytes,
-          )}`}
-          tone={storage?.health?.ok || rustfs?.health?.ok ? "neutral" : "warn"}
-        />
-        <MetricCard
-          icon={<AlertTriangleIcon className="size-4" />}
-          label="검수 후보"
-          value={Object.entries(candidatesByStatus)
-            .map(([key, value]) => `${candidateStatusLabel(key)} ${value}`)
-            .join(" · ") || "후보 없음"}
-          tone={asNum(candidatesByStatus.needs_review) > 0 ? "warn" : "neutral"}
-          href="/review"
-        />
-      </section>
+      <StatStrip
+        ariaLabel="운영 요약 지표"
+        className="border-y border-border py-4"
+        items={[
+          {
+            label: "실행 큐",
+            value: `실행 ${runningCount} · 대기 ${pendingCount} · 확인 필요 ${openAttentionCount}`,
+            tone:
+              openAttentionCount > 0
+                ? "warning"
+                : runningCount > 0
+                  ? "info"
+                  : "neutral",
+            href: openAttentionCount > 0 ? "/jobs?attention=open" : "/jobs",
+          },
+          {
+            label: "DB 장소/영상",
+            value: `${asNum(db.travel_places).toLocaleString()} 장소 · ${asNum(
+              db.youtube_videos,
+            ).toLocaleString()} 영상`,
+            tone: "neutral",
+          },
+          {
+            label: "RustFS",
+            value: `${storage?.health?.ok || rustfs?.health?.ok ? "정상" : "확인 필요"} · ${formatBytes(
+              storage?.total_size_bytes,
+            )}`,
+            tone: storage?.health?.ok || rustfs?.health?.ok ? "success" : "warning",
+          },
+          {
+            label: "검수 후보",
+            value:
+              Object.entries(candidatesByStatus)
+                .map(([key, value]) => `${candidateStatusLabel(key)} ${value}`)
+                .join(" · ") || "후보 없음",
+            tone: asNum(candidatesByStatus.needs_review) > 0 ? "warning" : "neutral",
+            href: "/review",
+          },
+        ]}
+        size="lg"
+      />
 
       <Section title="데이터">
         <section className="grid gap-4 xl:grid-cols-2">
@@ -187,7 +183,7 @@ export function StatusDashboard() {
               <Metric label="보존 정책" value={rustfs?.retention_policy ?? "-"} />
             </div>
             {(storage?.assets ?? rustfs?.assets ?? []).length > 0 ? (
-              <div className="mt-3 flex flex-col divide-y divide-surface-muted rounded-lg border border-surface-muted text-[13px]">
+              <div className="mt-3 flex flex-col divide-y divide-border rounded-control border border-border text-sm">
                 {(storage?.assets ?? rustfs?.assets ?? []).map((asset) => (
                   <div
                     key={asset.asset_type}
@@ -219,11 +215,11 @@ export function StatusDashboard() {
         <section className="grid gap-4 xl:grid-cols-2">
           <Panel title="로그인 기록">
             {(loginEventsQuery.data ?? []).length > 0 ? (
-              <div className="max-h-80 overflow-y-auto rounded-lg border border-surface-muted text-[13px]">
+              <div className="max-h-80 overflow-y-auto rounded-control border border-border text-sm">
                 {(loginEventsQuery.data ?? []).map((event) => (
                   <div
                     key={event.id}
-                    className="border-b border-surface-muted px-3 py-2 last:border-b-0"
+                    className="border-b border-border px-3 py-2 last:border-b-0"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium">
@@ -254,7 +250,7 @@ export function StatusDashboard() {
 
           <Panel title="최근 감사 로그">
             {(auditQuery.data ?? []).length > 0 ? (
-              <div className="flex max-h-80 flex-col divide-y divide-surface-muted overflow-y-auto rounded-lg border border-surface-muted text-[13px]">
+              <div className="flex max-h-80 flex-col divide-y divide-border overflow-y-auto rounded-control border border-border text-sm">
                 {(auditQuery.data ?? []).map((log) => (
                   <div key={log.id} className="px-3 py-2">
                     <div className="flex items-center justify-between gap-2">

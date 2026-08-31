@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-08-31: 최신 kor-travel-map admin UI 구조·컴포넌트 정렬
+
+- **기준 확인**: 별도 저장소 `kor-travel-map`의 `origin/main` 최신 커밋
+  `2c1cf954`(2026-08-31)를 확인했다. 최신 admin의 `Rail-Workbench`, 그룹형 메뉴, 접힘 Rail,
+  header band, `control/panel` 반경, flat card, `StatStrip`, Pretendard, hairline 표면을 기준으로
+  삼았다.
+- **색상 정책**: 기준 레포의 초록색 값은 가져오지 않았다. Concierge의 기존 보라색
+  `#7c3aed`/`#6d28d9`/`#ede9fe` accent와 짙은 보라색 `shell-rail`을 유지하고, 새 구조에서
+  필요한 상태 tint·focus·control 경계만 같은 semantic token 계층에 추가했다.
+- **구조·컴포넌트**: 실제 Concierge route만 `개요`·`수집 파이프라인`·`검수`·`시스템`으로
+  그룹화하고 모바일 가로 메뉴·데스크톱 16rem/4rem 접힘 Rail을 적용했다. `Card`, `SectionCard`,
+  `StatStrip`을 추가하고 `Panel`, Button/Input/Select/Tabs/Table/Dialog/AlertDialog/Popover,
+  field·badge·checkbox·switch의 공통 recipe를 최신 기준과 같은 밀도로 맞췄다. 결과·수집·검수·
+  작업·설정·상태의 주요 외곽 작업면과 알림/표 경계도 flat panel/hairline 언어로 통일했다.
+- **인증 화면**: 카드 프레임을 제거한 단일 가운데 로그인 열, 고정 오류 슬롯, 로딩 버튼 라벨 유지,
+  footer hairline을 적용했다. 로그인 API와 route 동작은 변경하지 않았다.
+- **로컬 검증**: frontend `lint`, `type-check`, Vitest **332건**, `next build --webpack`을
+  통과했다. n150 배포 후 라이브 로그인·UI E2E 결과는 배포 검증 뒤 이 항목에 보강한다.
+
 ## 2026-08-27: 브랜드 accent 보라색 전환과 kor-travel-geo look-and-feel 정렬
 
 - **색상 전환**: 운영 콘솔의 단일 accent brand를 초록(`#1f6b51`)에서 보라(violet-600

@@ -370,8 +370,8 @@ function RunPlacesTable({
   if (places.length === 0) return <EmptyState>추출된 POI가 없습니다.</EmptyState>;
 
   return (
-    <div className="max-h-72 overflow-auto rounded-lg border border-surface-muted">
-      <table className="w-full min-w-[34rem] text-[13px]">
+    <div className="max-h-72 overflow-auto rounded-panel border border-border">
+      <table className="w-full min-w-[34rem] text-sm">
         <thead className="sticky top-0 z-10 bg-surface-subtle text-left text-[12px] font-bold text-text-secondary">
           <tr>
             <th className="px-3 py-2">장소</th>
@@ -383,7 +383,7 @@ function RunPlacesTable({
           {places.map((place) => (
             <tr
               key={`${place.kind}-${place.place_id ?? place.candidate_id}`}
-              className="border-t border-surface-muted"
+              className="border-t border-border"
             >
               <td className="px-3 py-2 align-top">
                 <span className="line-clamp-2 font-medium">{place.name}</span>
@@ -435,8 +435,8 @@ function CollectedVideosTable({
   if (videos.length === 0) return <EmptyState>수집된 영상이 없습니다.</EmptyState>;
 
   return (
-    <div className="max-h-80 overflow-auto rounded-lg border border-surface-muted">
-      <table className="w-full min-w-[42rem] text-[13px]">
+    <div className="max-h-80 overflow-auto rounded-panel border border-border">
+      <table className="w-full min-w-[42rem] text-sm">
         <thead className="sticky top-0 z-10 bg-surface-subtle text-left text-[12px] font-bold text-text-secondary">
           <tr>
             <th className="px-3 py-2">영상</th>
@@ -447,7 +447,7 @@ function CollectedVideosTable({
         </thead>
         <tbody>
           {videos.map((video) => (
-            <tr key={video.video_id} className="border-t border-surface-muted">
+            <tr key={video.video_id} className="border-t border-border">
               <td className="px-3 py-2 align-top">
                 <a
                   href={video.url}
@@ -491,7 +491,7 @@ function MetricGrid({
       {fields.map((field) => (
         <div
           key={field.label}
-          className="flex min-w-0 flex-col gap-0.5 rounded-lg border border-surface-muted bg-surface-subtle p-2.5"
+          className="flex min-w-0 flex-col gap-0.5 rounded-control border border-border bg-surface-subtle p-2.5"
         >
           <span className="text-[12px] text-text-secondary">{field.label}</span>
           <span className="break-words text-[13px] font-bold">{field.value}</span>

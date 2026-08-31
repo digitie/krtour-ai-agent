@@ -60,7 +60,7 @@ export function SearchResultsPanel({
   onSelectHit,
 }: SearchResultsPanelProps) {
   return (
-    <div ref={resultsRef} className="scroll-mt-3 flex flex-col gap-4 rounded-xl border border-surface-muted bg-card p-4 shadow-[var(--shadow-card)]">
+    <div ref={resultsRef} className="scroll-mt-3 flex flex-col gap-4 rounded-panel border border-border bg-card p-4">
       {!opinionRequested ? (
         <Button
           type="button"
@@ -78,13 +78,13 @@ export function SearchResultsPanel({
           onApply={() => onApplyOpinion(opinion)}
         />
       ) : opinionLoading ? (
-        <div className="flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 rounded-control border border-brand bg-brand-tint p-3 text-sm text-text-secondary">
           <Loader2Icon className="size-4 animate-spin text-primary" />
           Gemini 의견 분석 중…
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <p className="flex items-center gap-1.5 rounded-xl border p-3 text-xs text-muted-foreground">
+          <p className="flex items-center gap-1.5 rounded-control border border-border p-3 text-xs text-text-secondary">
             <SparklesIcon className="size-3.5 shrink-0" />
             {opinionError ?? "Gemini 의견이 없습니다."}
           </p>
@@ -127,7 +127,7 @@ function GeminiCard({
   onApply: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-brand-tint/55 p-3">
+    <div className="flex flex-col gap-2 rounded-control border border-brand bg-brand-tint p-3">
       <div className="flex items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-sm font-medium">
           <SparklesIcon className="size-4 text-primary" />
@@ -170,15 +170,15 @@ function ProviderSection({
   onSelect: (hit: PlaceSearchHit) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2 border-t border-surface-muted pt-3 first:border-t-0 first:pt-0">
+    <div className="flex flex-col gap-2 border-t border-border pt-3 first:border-t-0 first:pt-0">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-extrabold tracking-[0.08em] text-text-secondary uppercase">{label}</p>
+        <p className="text-xs font-medium text-text-secondary">{label}</p>
         <Badge variant="outline">{hits.length}</Badge>
       </div>
       {error ? (
         <p className="text-xs text-destructive">{error}</p>
       ) : hits.length === 0 ? (
-        <p className="rounded-lg border p-2 text-xs text-muted-foreground">
+        <p className="rounded-control border border-border p-2 text-xs text-text-secondary">
           {loading ? "검색 중…" : "결과 없음"}
         </p>
       ) : (
@@ -204,7 +204,7 @@ function ProviderSection({
               aria-keyshortcuts={shortcutNumber ? String(shortcutNumber) : undefined}
               title={selectionNotice ?? undefined}
               onClick={() => onSelect(hit)}
-              className="flex flex-col gap-1 rounded-lg border border-surface-muted bg-surface-row p-2.5 text-left text-xs transition-[border-color,background-color,box-shadow] duration-150 hover:border-brand/45 hover:bg-brand-tint/40 hover:shadow-[var(--shadow-card)] aria-pressed:border-brand aria-pressed:bg-brand-tint aria-pressed:shadow-[var(--shadow-card)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex flex-col gap-1 rounded-control border border-border bg-surface-row p-2.5 text-left text-xs transition-[color,background-color,border-color] duration-fast hover:border-brand hover:bg-brand-tint aria-pressed:border-brand aria-pressed:bg-brand-tint disabled:cursor-not-allowed disabled:opacity-55"
             >
               <span className="flex items-center justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-1.5">

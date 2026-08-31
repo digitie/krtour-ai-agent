@@ -310,9 +310,9 @@ export function DestinationWorkspace() {
   }
 
   return (
-    <div className="flex h-full min-h-[36rem] flex-col overflow-hidden border-y border-surface-muted bg-background lg:min-h-0 lg:rounded-xl lg:border">
+    <div className="flex h-full min-h-[36rem] flex-col overflow-hidden border-y border-border bg-surface-page lg:min-h-0 lg:rounded-panel lg:border">
       {videoFilter ? (
-        <div className="flex items-center justify-between gap-2 border-b border-brand/15 bg-brand-tint/65 px-4 py-2 text-xs">
+        <div className="flex items-center justify-between gap-2 border-b border-brand bg-brand-tint px-4 py-2 text-xs">
           <span className="truncate text-muted-foreground">
             영상 필터: 이 영상이 언급한 장소만 표시 중
           </span>
@@ -689,7 +689,7 @@ function DestinationList({
                 rowRefs.current.delete(place.place_id);
               }
             }}
-            className="grid grid-cols-[auto_1fr_auto] items-start gap-2 rounded-lg border p-2 transition-colors data-[selected=true]:border-primary data-[selected=true]:bg-primary/5"
+            className="grid grid-cols-[auto_1fr_auto] items-start gap-2 rounded-control border border-border bg-card p-2 transition-[color,background-color,border-color] duration-fast data-[selected=true]:border-brand data-[selected=true]:bg-brand-tint"
             data-selected={isSelected}
           >
             <Checkbox

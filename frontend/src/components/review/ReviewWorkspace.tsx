@@ -2942,7 +2942,7 @@ export function ReviewWorkspace() {
     <div
       role="group"
       aria-label="검수 화면 모드"
-      className="inline-flex overflow-hidden rounded-lg border"
+      className="inline-flex overflow-hidden rounded-control border border-border"
     >
       {(["triage", "table"] as const).map((mode) => (
         <button
@@ -2950,7 +2950,7 @@ export function ReviewWorkspace() {
           type="button"
           aria-pressed={reviewMode === mode}
           onClick={() => setReviewMode(mode)}
-          className="px-2.5 py-1 text-xs font-medium transition-colors aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+          className="h-control-sm px-2.5 text-xs font-medium transition-[color,background-color] duration-fast aria-pressed:bg-brand aria-pressed:text-brand-foreground"
         >
           {mode === "triage" ? "처리 모드" : "목록/관리"}
         </button>
@@ -2990,7 +2990,7 @@ export function ReviewWorkspace() {
         }
       >
         {isTriage ? (
-          <aside className="flex min-h-0 max-h-[40vh] flex-col gap-3 overflow-y-auto border-b border-surface-muted bg-card p-4 lg:h-full lg:max-h-none lg:border-r lg:border-b-0">
+          <aside className="flex min-h-0 max-h-[40vh] flex-col gap-3 overflow-y-auto border-b border-border bg-card p-4 lg:h-full lg:max-h-none lg:border-r lg:border-b-0">
             <div className="flex items-center justify-between gap-2">
               <p className="px-1 text-xs font-medium text-muted-foreground">
                 처리 진행
@@ -3014,7 +3014,7 @@ export function ReviewWorkspace() {
                 />
               </Button>
             </div>
-            <div className="rounded-xl border p-3">
+            <div className="rounded-control border border-border bg-surface-subtle p-3">
               <p className="text-2xl font-semibold tabular-nums">
                 {triagePosition > 0 ? triagePosition : "–"}
                 <span className="text-sm font-normal text-muted-foreground">
@@ -3029,7 +3029,7 @@ export function ReviewWorkspace() {
               </p>
             </div>
             {lastProcessed ? (
-              <div className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
+              <div className="flex flex-col gap-2 rounded-control border border-brand bg-brand-tint p-3">
                 <p className="text-xs font-medium">최근 처리</p>
                 <p className="truncate text-sm" title={lastProcessed.candidateName}>
                   {lastProcessed.candidateName}
@@ -3071,17 +3071,17 @@ export function ReviewWorkspace() {
                 ) : null}
               </div>
             ) : (
-              <p className="rounded-xl border p-3 text-xs text-muted-foreground">
+              <p className="rounded-control border border-border bg-surface-subtle p-3 text-xs text-text-secondary">
                 처리한 후보가 여기에 표시되고 U로 되돌릴 수 있습니다.
               </p>
             )}
-            <p className="mt-auto rounded-lg border border-dashed p-2 text-[11px] leading-relaxed text-muted-foreground">
+            <p className="mt-auto rounded-control border border-border p-2 text-2xs leading-relaxed text-text-secondary">
               J/K 다음·이전 · 1–9 검색결과 · Enter 저장 · X 제외 · U 되돌리기 · /
               검색 · ? 도움말. 필터·일괄 처리는 &ldquo;목록/관리&rdquo; 모드에서.
             </p>
           </aside>
         ) : (
-        <aside className="flex min-h-0 max-h-[48vh] flex-col gap-3 overflow-hidden border-b border-surface-muted bg-card p-4 lg:h-full lg:max-h-none lg:border-r lg:border-b-0">
+        <aside className="flex min-h-0 max-h-[48vh] flex-col gap-3 overflow-hidden border-b border-border bg-card p-4 lg:h-full lg:max-h-none lg:border-r lg:border-b-0">
           <div className="flex items-center justify-between gap-2">
             <p className="px-1 text-xs font-medium text-muted-foreground">
               {isRemovedView ? "제외·삭제된 후보" : "검수 대기 후보"}
@@ -3335,7 +3335,7 @@ export function ReviewWorkspace() {
             </p>
           ) : null}
           {newCandidatesQuery.isError ? (
-            <div className="flex items-center justify-between gap-2 rounded-lg border border-destructive/30 px-2 py-1.5 text-xs text-destructive">
+            <div className="flex items-center justify-between gap-2 rounded-control border border-destructive px-2 py-1.5 text-xs text-destructive">
               <span role="alert">
                 새 후보 확인에 실패해 이전 확인값은 표시하지 않습니다.
               </span>
@@ -3354,7 +3354,7 @@ export function ReviewWorkspace() {
                 type="button"
                 size="sm"
                 variant="outline"
-                className="w-full border-primary/40 bg-primary/5"
+                className="w-full border-brand bg-brand-tint"
                 onClick={() => void restartCandidateSnapshot()}
               >
                 {newCandidateNotice}
@@ -3362,7 +3362,7 @@ export function ReviewWorkspace() {
             </div>
           ) : null}
           {candidateAppendError ? (
-            <div className="flex items-center justify-between gap-2 rounded-lg border border-destructive/30 px-2 py-1.5 text-xs text-destructive">
+            <div className="flex items-center justify-between gap-2 rounded-control border border-destructive px-2 py-1.5 text-xs text-destructive">
               <span role="alert">{candidateAppendError}</span>
               <Button
                 type="button"
@@ -3386,23 +3386,23 @@ export function ReviewWorkspace() {
             </div>
           ) : null}
           {deleteCandidatesMutation.error ? (
-            <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive" role="alert">
+            <p className="rounded-control border border-destructive bg-destructive-tint p-2 text-xs text-destructive" role="alert">
               {deleteCandidatesMutation.error.message}
             </p>
           ) : null}
           {candidateActionError ? (
-            <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive" role="alert">
+            <p className="rounded-control border border-destructive bg-destructive-tint p-2 text-xs text-destructive" role="alert">
               {candidateActionError}
             </p>
           ) : null}
           {!isRemovedView && reprocessMutation.isSuccess && reprocessMutation.data ? (
-            <p className="rounded-lg bg-primary/10 px-2 py-1 text-xs text-primary">
+            <p className="rounded-control bg-brand-tint px-2 py-1 text-xs text-brand">
               영상 {reprocessMutation.data.videos}개를{" "}
               {reprocessMutation.data.enqueued_jobs}개 작업으로 재처리 등록했습니다.
             </p>
           ) : null}
           {!isRemovedView && cart.length > 0 ? (
-            <div className="flex flex-col gap-1.5 rounded-lg border border-primary/40 bg-primary/5 p-2">
+            <div className="flex flex-col gap-1.5 rounded-control border border-brand bg-brand-tint p-2">
               <p className="text-xs font-medium">
                 선택한 영상 {cart.length}개 재처리
               </p>
@@ -3477,7 +3477,7 @@ export function ReviewWorkspace() {
                   검수 후보를 불러오는 중…
                 </p>
               ) : candidateLoadError ? (
-                <div className="flex flex-col gap-2 rounded-lg border border-destructive/30 p-3 text-xs text-destructive">
+                <div className="flex flex-col gap-2 rounded-control border border-destructive p-3 text-xs text-destructive">
                   <p role="alert">{candidateLoadError}</p>
                   <div className="flex flex-wrap gap-1.5">
                     <Button
@@ -3595,7 +3595,7 @@ export function ReviewWorkspace() {
               {deepLinkedCandidateId != null &&
               deepLinkDetailQuery.data != null &&
               deepLinkDetailQuery.isError ? (
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-destructive bg-destructive-tint p-3 text-sm text-destructive">
                   <span role="alert">
                     최신 후보 상세를 다시 확인하지 못해 이전 정보를 표시합니다.
                   </span>
@@ -3611,7 +3611,7 @@ export function ReviewWorkspace() {
                 </div>
               ) : null}
               {deepLinkStatusOut ? (
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-warning/40 bg-warning/5 p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-warning bg-warning-tint p-3 text-sm">
                   <span role="status">
                     이 후보는 현재 {candidateReviewStateLabel(selected.review_state)} 상태라 검수
                     저장·제외·삭제를 할 수 없습니다.
@@ -3626,7 +3626,7 @@ export function ReviewWorkspace() {
                   </Button>
                 </div>
               ) : deepLinkFilterOut ? (
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-brand bg-brand-tint p-3 text-sm">
                   <span role="status">현재 필터 밖 후보를 단건 상세로 열었습니다.</span>
                   <Button
                     type="button"
@@ -3646,13 +3646,13 @@ export function ReviewWorkspace() {
               ) : deepLinkLoadedOut ? (
                 <p
                   role="status"
-                  className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm"
+                  className="rounded-control border border-brand bg-brand-tint p-3 text-sm"
                 >
                   현재 필터에는 포함되지만 아직 불러온 페이지 밖 후보입니다. 목록 전체를
                   순회하지 않고 단건 상세로 바로 열었습니다.
                 </p>
               ) : null}
-              <div className="flex flex-col gap-2 rounded-xl border p-4">
+              <div className="flex flex-col gap-2 rounded-control border border-border p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-semibold">
                     {selected.ai_place_name}
@@ -3673,7 +3673,7 @@ export function ReviewWorkspace() {
                 selected.review_state === "needs_review" ? (
                   <p
                     role="status"
-                    className="rounded-lg border border-warning/40 bg-warning/5 p-2 text-xs text-warning"
+                    className="rounded-control border border-warning bg-warning-tint p-2 text-xs text-warning"
                   >
                     출처 영상은 제외 상태입니다. 후보를 복구하거나 다시 확정해도
                     영상 제외는 유지됩니다.
@@ -3723,7 +3723,7 @@ export function ReviewWorkspace() {
                   onVerify={() => void recoveryDetailQuery.refetch()}
                 />
               ) : !selectedActionable ? (
-                <div className="flex flex-col items-start gap-2 rounded-xl border border-warning/40 bg-warning/5 p-4 text-sm">
+                <div className="flex flex-col items-start gap-2 rounded-control border border-warning bg-warning-tint p-4 text-sm">
                   <p role="status">
                     최신 후보 상태를 확인하지 못해 외부 검색과 검수 액션을 잠시
                     중지했습니다.
@@ -4260,7 +4260,7 @@ function RemovedCandidateRecoveryPanel({
 }) {
   const displayedCandidate = authoritativeCandidate ?? candidate;
   return (
-    <div className="flex flex-col items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+    <div className="flex flex-col items-start gap-3 rounded-control border border-brand bg-brand-tint p-4">
       <div className="space-y-1">
         <p className="text-sm font-medium">
           {candidateReviewStateLabel(displayedCandidate.review_state)} 후보 복구
@@ -4271,7 +4271,7 @@ function RemovedCandidateRecoveryPanel({
         </p>
       </div>
       {displayedCandidate.video_is_excluded ? (
-        <p role="status" className="rounded-lg border border-warning/40 bg-warning/5 p-2 text-xs text-warning">
+        <p role="status" className="rounded-control border border-warning bg-warning-tint p-2 text-xs text-warning">
           이 후보의 출처 영상은 제외 상태입니다. 후보를 복구해도 영상 제외는 별도
           정책이므로 그대로 유지됩니다.
         </p>

@@ -40,7 +40,7 @@ export function HomeActionBanner() {
   }
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-surface-muted bg-brand-tint/40 px-4 py-1.5 text-[13px]">
+    <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-border bg-brand-tint px-4 py-2 text-sm">
       {model.showReview ? (
         <span className="flex min-w-0 items-center gap-1.5">
           <ClipboardCheckIcon className="size-3.5 shrink-0 text-brand" />

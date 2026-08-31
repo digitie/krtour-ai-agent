@@ -5,20 +5,22 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "group/badge inline-flex h-6 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-md border border-transparent px-2 py-0.5 text-[12px] font-bold tracking-[0.05em] whitespace-nowrap uppercase transition-colors focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/20 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:!size-3",
+  "group/badge inline-flex h-6 w-fit shrink-0 items-center justify-center gap-1 rounded-control border border-transparent px-2 text-2xs leading-none font-medium whitespace-nowrap tabular-nums transition-[color,background-color,border-color] duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
     variants: {
       variant: {
-        default: "bg-brand text-brand-foreground [&>a]:hover:bg-brand/90",
-        secondary:
-          "bg-brand-tint text-brand [&>a]:hover:bg-brand-tint/80",
+        default: "bg-brand text-brand-foreground [a]:hover:bg-brand-hover",
+        secondary: "bg-brand-tint text-brand [a]:hover:border-brand",
         destructive:
-          "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [&>a]:hover:bg-destructive/20",
+          "bg-destructive-tint text-destructive [a]:hover:border-destructive",
         outline:
-          "border-border bg-card text-text-secondary [&>a]:hover:bg-surface-subtle [&>a]:hover:text-text-primary",
-        ghost:
-          "text-text-secondary hover:bg-surface-subtle hover:text-text-primary",
+          "border-border bg-card text-text-secondary [a]:hover:bg-surface-subtle [a]:hover:text-text-primary",
+        ghost: "text-text-secondary hover:bg-surface-subtle hover:text-text-primary",
         link: "text-brand underline-offset-4 hover:underline",
+        success: "bg-success-tint text-success [a]:hover:border-success",
+        warning: "bg-warning-tint text-warning [a]:hover:border-warning",
+        info: "bg-info-tint text-info [a]:hover:border-info",
+        neutral: "bg-surface-subtle text-text-secondary [a]:hover:bg-surface-muted [a]:hover:text-text-primary",
       },
     },
     defaultVariants: {

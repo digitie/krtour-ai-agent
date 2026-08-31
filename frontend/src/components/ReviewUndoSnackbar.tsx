@@ -25,7 +25,7 @@ export function ReviewUndoSnackbar({
     <div
       role="status"
       aria-live="polite"
-      className="fixed right-4 bottom-4 z-50 flex w-[min(28rem,calc(100vw-2rem))] flex-col gap-2 rounded-xl border bg-background p-3 shadow-lg"
+      className="fixed right-4 bottom-4 z-50 flex w-[min(28rem,calc(100vw-2rem))] flex-col gap-2 rounded-panel border border-border bg-card p-3 shadow-elevated"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

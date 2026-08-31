@@ -9,10 +9,29 @@ const config: Config = {
     extend: {
       borderRadius: {
         "4xl": "2rem",
+        control: "var(--radius-control)",
+        panel: "var(--radius-panel)",
         xl: "var(--radius)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      spacing: {
+        control: "var(--control-height)",
+        "control-sm": "var(--control-height-sm)",
+      },
+      fontFamily: {
+        sans: "var(--ktc-font-sans)",
+        mono: '"Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
+      },
+      fontSize: {
+        "2xs": ["0.75rem", { lineHeight: "1.25rem" }],
+        xs: ["0.8125rem", { lineHeight: "1.25rem" }],
+        sm: ["0.9375rem", { lineHeight: "1.4" }],
+        md: ["1.0625rem", { lineHeight: "1.35" }],
+        lg: ["1.25rem", { lineHeight: "1.3" }],
+        xl: ["1.5rem", { lineHeight: "1.25" }],
+        "2xl": ["1.875rem", { lineHeight: "1.2" }],
       },
       colors: {
         background: "var(--background)",
@@ -44,6 +63,7 @@ const config: Config = {
         destructive: {
           DEFAULT: "var(--destructive)",
           foreground: "var(--destructive-foreground)",
+          tint: "var(--destructive-tint)",
         },
         border: "var(--border)",
         input: "var(--input)",
@@ -79,11 +99,26 @@ const config: Config = {
           DEFAULT: "var(--brand)",
           foreground: "var(--brand-foreground)",
           ink: "var(--brand-ink)",
+          hover: "var(--brand-hover)",
           tint: "var(--brand-tint)",
         },
-        info: "var(--info)",
-        success: "var(--success)",
-        warning: "var(--warning)",
+        control: {
+          line: "var(--control-line)",
+        },
+        focus: "var(--focus)",
+        overlay: "var(--overlay)",
+        info: {
+          DEFAULT: "var(--info)",
+          tint: "var(--info-tint)",
+        },
+        success: {
+          DEFAULT: "var(--success)",
+          tint: "var(--success-tint)",
+        },
+        warning: {
+          DEFAULT: "var(--warning)",
+          tint: "var(--warning-tint)",
+        },
         warn: "var(--warning)",
         danger: "var(--danger)",
         icon: {
@@ -98,10 +133,13 @@ const config: Config = {
       },
       transitionTimingFunction: {
         default: "var(--ease-default)",
+        out: "var(--ease-out)",
+        in: "var(--ease-in)",
       },
       transitionDuration: {
         fast: "var(--duration-fast)",
         normal: "var(--duration-normal)",
+        base: "var(--duration-normal)",
       },
     },
   },

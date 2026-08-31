@@ -127,10 +127,10 @@ export function JobsDashboard() {
       {runActionFeedback ? (
         <div
           role={runActionFeedback.kind === "error" ? "alert" : "status"}
-          className={`rounded-lg border px-3 py-2 text-sm ${
+          className={`rounded-control border px-3 py-2 text-sm ${
             runActionFeedback.kind === "error"
-              ? "border-destructive/30 bg-destructive/5 text-destructive"
-              : "border-surface-muted bg-surface-subtle text-text-secondary"
+              ? "border-destructive bg-destructive-tint text-destructive"
+              : "border-border bg-surface-subtle text-text-secondary"
           }`}
         >
           {runActionFeedback.kind === "error" ? (
@@ -238,7 +238,7 @@ export function JobsDashboard() {
           {attentionOnly ? (
             <div
               role="status"
-              className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-text-secondary"
+              className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-control border border-destructive bg-destructive-tint px-3 py-2 text-xs text-text-secondary"
             >
               <span>아직 확인하지 않은 종료 작업만 표시합니다.</span>
               <Link
@@ -296,9 +296,9 @@ function RunStatusTable({
   }
 
   return (
-    <div className="max-h-[28rem] overflow-auto rounded-lg border border-surface-muted">
-      <table className="w-full min-w-[52rem] text-[13px]">
-        <thead className="sticky top-0 z-10 bg-surface-subtle text-left text-[12px] font-bold text-text-secondary">
+    <div className="max-h-[28rem] overflow-auto rounded-panel border border-border">
+      <table className="w-full min-w-[52rem] text-sm">
+        <thead className="sticky top-0 z-10 bg-surface-subtle text-left text-xs font-semibold text-text-secondary">
           <tr>
             <th className="px-3 py-2">상태</th>
             <th className="px-3 py-2">작업/대상</th>
@@ -311,7 +311,7 @@ function RunStatusTable({
         </thead>
         <tbody>
           {runs.map((run) => (
-            <tr key={run.job_id} className="border-t border-surface-muted">
+            <tr key={run.job_id} className="border-t border-border">
               <td className="px-3 py-2 align-top">
                 <div className="flex max-w-36 flex-wrap gap-1">
                   <Badge variant={runOutcomeBadgeVariant(run)}>
