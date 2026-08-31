@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-09-01: 작업 삭제·오류 상세·Prometheus telemetry·운영 콘솔 브랜딩
+
+- **작업 삭제**: 종료된 `done`/`failed`/`cancelled` 작업만 잠금 후 삭제하도록 REST API와
+  `/jobs` 액션을 추가했다. 실행 중 작업과 활성 재시작 자식이 있는 원본은 거부하며, 작업
+  단계 이벤트·감사 대상만 정리하고 영상·장소·원본 미디어·관찰 이력은 보존한다.
+- **오류 진단**: YouTube Data API 오류 응답의 status/reason/API status/message와 재시도
+  횟수를 API key 마스킹 후 `last_error`에 남기도록 보강했다. 작업 상세의 `오류 상세` 영역에서
+  전체 원인을 읽고 복사할 수 있으며, 실패 작업 UI E2E fixture로 회귀 검증한다.
+- **Prometheus telemetry**: 내부 `/metrics` scrape endpoint에 HTTP 요청/처리시간, 현재
+  작업 상태, 실패 원인 종류, 작업 삭제 결과를 저카디널리티 label로 노출한다. 기본 접근은
+  loopback/Docker 사설 CIDR로 제한하고 필요하면 별도 `X-API-Key`를 요구한다.
+- **브랜드명**: 브라우저 title, 로그인 화면, 좌측 메뉴 상단과 접근성 이름을
+  `Travel Concierge Admin UI`로 통일했다. 기존 운영 콘솔의 보라색 색상톤은 유지한다.
+- **검증**: frontend Vitest 333건, lint, type-check, production build와 YouTube/telemetry
+  targeted backend 테스트를 통과했다. PostGIS 통합·n150 Prometheus scrape·live E2E는
+  배포 단계에서 확인한다.
+
 ## 2026-08-31: 최신 kor-travel-map admin UI 구조·컴포넌트 정렬
 
 - **기준 확인**: 별도 저장소 `kor-travel-map`의 `origin/main` 최신 커밋

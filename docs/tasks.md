@@ -6,7 +6,9 @@
 
 ## 진행 중
 
-없음.
+- [ ] **사용자 지시(PR #224)**: 종료 작업 삭제, YouTube·작업 오류 상세 UI, Prometheus
+  telemetry, `Travel Concierge Admin UI` 브랜딩을 구현했다. n150 Prometheus scrape 연동,
+  배포 후 로그인·live E2E와 적대적 리뷰를 완료하면 종료한다.
 
 ---
 
