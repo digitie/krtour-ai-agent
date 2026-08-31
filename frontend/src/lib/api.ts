@@ -1264,6 +1264,17 @@ export async function stopRun(jobId: string): Promise<StopRunResult> {
   });
 }
 
+export type DeleteRunResult = {
+  job_id: string;
+  deleted: true;
+};
+
+export async function deleteRun(jobId: string): Promise<DeleteRunResult> {
+  return requestJson<DeleteRunResult>(`/api/v1/runs/${jobId}`, {
+    method: "DELETE",
+  });
+}
+
 export type RestartRunResult = {
   job_id: string;
   state: ActiveRunState;

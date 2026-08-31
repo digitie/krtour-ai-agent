@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   deleteCandidate,
+  deleteRun,
   executeReviewBulk,
   groupThemeItems,
   listReviewSourceFacets,
@@ -664,6 +665,30 @@ describe("stopRun", () => {
       "/api/v1/runs/42/stop",
       expect.objectContaining({
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+  });
+});
+
+describe("deleteRun", () => {
+  it("종료 작업 삭제 응답을 DELETE 요청으로 반환한다", async () => {
+    const responseBody = { job_id: "42", deleted: true } as const;
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(responseBody), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await deleteRun("42");
+
+    expect(result).toEqual(responseBody);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/runs/42",
+      expect.objectContaining({
+        method: "DELETE",
         headers: { "Content-Type": "application/json" },
       }),
     );

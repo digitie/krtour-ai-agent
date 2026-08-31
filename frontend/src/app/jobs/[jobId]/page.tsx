@@ -57,6 +57,7 @@ export default function JobDetailPage() {
               run={run}
               size="sm"
               restartBehavior="navigate"
+              onDeleted={() => router.push("/jobs")}
             />
           ) : null}
           <Button

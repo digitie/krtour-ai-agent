@@ -1149,6 +1149,43 @@ async def stop_run(
     return {"job_id": str(job_id), "state": transition.accepted_state}
 
 
+@router.delete("/runs/{job_id}")
+async def delete_run(
+    job_id: int, session: AsyncSession = Depends(get_session)
+) -> dict[str, Any]:
+    """종료된 작업 이력을 삭제한다.
+
+    작업 이벤트와 작업 행만 정리하고, 수집된 영상·장소·원본 미디어·관찰 이력은
+    보존한다. 삭제와 감사 기록은 하나의 transaction으로 커밋한다.
+    """
+    try:
+        transition = await crawl_run_service.delete_run(
+            session, job_id, commit=False
+        )
+        if transition is None:
+            raise HTTPException(status_code=404, detail="job not found")
+        await audit_service.record(
+            session,
+            actor_type="web",
+            action="run.delete",
+            target_type="crawl_run",
+            target_id=str(job_id),
+            payload={"prev_state": transition.previous_state.value},
+            commit=False,
+        )
+        await session.commit()
+    except HTTPException:
+        await session.rollback()
+        raise
+    except ValueError as exc:
+        await session.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception:
+        await session.rollback()
+        raise
+    return {"job_id": str(job_id), "deleted": True}
+
+
 @router.post("/runs/{job_id}/restart")
 async def restart_run(
     job_id: int, session: AsyncSession = Depends(get_session)

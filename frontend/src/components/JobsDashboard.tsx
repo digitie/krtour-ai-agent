@@ -136,11 +136,17 @@ export function JobsDashboard() {
           {runActionFeedback.kind === "error" ? (
             <>
               작업 #{runActionFeedback.jobId}의
-              {runActionFeedback.action === "stop" ? " 중지" : " 재시작"} 요청에
+              {runActionFeedback.action === "stop"
+                ? " 중지"
+                : runActionFeedback.action === "delete"
+                  ? " 삭제"
+                  : " 재시작"} 요청에
               실패했습니다: {runActionFeedback.message}
             </>
           ) : runActionFeedback.kind === "stopped" ? (
             <>작업 #{runActionFeedback.jobId}의 중지를 요청했습니다.</>
+          ) : runActionFeedback.kind === "deleted" ? (
+            <>작업 #{runActionFeedback.jobId}를 삭제했습니다.</>
           ) : (
             <>
               {runActionFeedback.created

@@ -82,6 +82,14 @@ class StopRunTransition:
 
 
 @dataclass(frozen=True)
+class DeleteRunTransition:
+    """행 잠금 안에서 확정한 작업 삭제의 결정적 응답 snapshot."""
+
+    run_id: int
+    previous_state: RunState
+
+
+@dataclass(frozen=True)
 class RunQueueSnapshot:
     """동일한 DB snapshot에서 읽은 사용자 작업 대기열과 집계."""
 
@@ -364,6 +372,54 @@ async def create_run(
 async def get_run(session: AsyncSession, run_id: int) -> CrawlRun | None:
     """작업 1건을 조회한다."""
     return await session.get(CrawlRun, run_id)
+
+
+async def delete_run(
+    session: AsyncSession, run_id: int, *, commit: bool = True
+) -> DeleteRunTransition | None:
+    """종료된 작업 1건과 종속된 작업 이벤트를 삭제한다.
+
+    실행 중 작업은 worker가 상태를 갱신하는 동안 사라지지 않도록 삭제하지 않는다.
+    활성 재시작 자식이 있는 원본도 먼저 중지하도록 막아 lineage가 조용히 끊기지 않게
+    한다. DB FK의 삭제 정책에 따라 stage event는 CASCADE되고 transcript/analysis
+    관찰 이력의 run 참조는 SET NULL된다. 영상·장소·미디어 자체는 삭제하지 않는다.
+    원본 행 잠금으로 restart 생성과의 경합도 직렬화한다.
+    """
+    run = (
+        await session.execute(
+            select(CrawlRun)
+            .where(CrawlRun.id == run_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
+    if run is None:
+        return None
+    if run.state not in TERMINAL_RUN_STATES:
+        raise ValueError("종료된 작업(done/failed/cancelled)만 삭제할 수 있습니다")
+
+    active_restart_id = await session.scalar(
+        select(CrawlRun.id)
+        .where(
+            CrawlRun.restart_of_run_id == run.id,
+            CrawlRun.state.in_((RunState.PENDING, RunState.RUNNING)),
+        )
+        .limit(1)
+    )
+    if active_restart_id is not None:
+        raise ValueError(
+            "활성 재시작 작업이 있어 삭제할 수 없습니다. 먼저 재시작 작업을 중지해 주세요"
+        )
+
+    transition = DeleteRunTransition(
+        run_id=run.id,
+        previous_state=RunState(run.state),
+    )
+    await session.delete(run)
+    await session.flush()
+    if commit:
+        await session.commit()
+    return transition
 
 
 async def list_runs(

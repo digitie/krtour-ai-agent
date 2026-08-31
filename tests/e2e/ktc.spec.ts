@@ -514,6 +514,31 @@ test.describe('Kor Travel Concierge E2E 검증', () => {
     expectRelevantConsoleErrors(errors).toEqual([]);
   });
 
+  test('종료 작업 이력을 확인 후 삭제할 수 있다', async ({ page }) => {
+    const errors = collectConsoleErrors(page);
+    await loginAsAdmin(page, '/jobs');
+
+    const completedRow = page.getByRole('row', { name: /제주 여행/ });
+    await expect(completedRow).toBeVisible();
+    await completedRow.getByRole('button', { name: '삭제', exact: true }).click();
+
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog.getByRole('heading', { name: '이 작업을 삭제할까요?' })).toBeVisible();
+    await expect(dialog).toContainText('원본 미디어는 삭제하지 않습니다');
+
+    const deleteResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v1/runs/') &&
+        response.request().method() === 'DELETE',
+    );
+    await dialog.getByRole('button', { name: '삭제', exact: true }).click();
+    expect((await deleteResponse).ok()).toBeTruthy();
+
+    await expect(completedRow).toHaveCount(0);
+    await expect(page.getByRole('status')).toContainText('삭제했습니다');
+    expectRelevantConsoleErrors(errors).toEqual([]);
+  });
+
   test('실행 중 작업을 확인 후 중지 요청하고 즉시 상태를 갱신한다', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     const facetRequests: string[] = [];

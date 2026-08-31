@@ -366,6 +366,170 @@ async def test_stop_terminal_run_400(client, session):
     assert stop.status_code == 400
 
 
+async def test_delete_terminal_run_keeps_video_media_and_observation_history(
+    client, session_factory
+):
+    from datetime import datetime, timezone
+
+    from sqlalchemy import select
+
+    from ktc.models import (
+        AuditLog,
+        CrawlRun,
+        CrawlRunStageEvent,
+        MediaAsset,
+        RunState,
+        TranscriptAttemptRecord,
+        YoutubeChannel,
+        YoutubeVideo,
+        YoutubeVideoAnalysisRun,
+    )
+
+    async with session_factory() as seed_session:
+        channel = YoutubeChannel(channel_id="UCdeletejob", title="삭제 보존 채널")
+        video = YoutubeVideo(
+            video_id="delete-job-video",
+            title="삭제 보존 영상",
+            url="https://youtu.be/delete-job-video",
+            channel_id=channel.channel_id,
+        )
+        run = CrawlRun(
+            job_type="harvest",
+            source="web",
+            target_type="keyword",
+            target_id="삭제 테스트",
+            state=RunState.DONE,
+            progress=1.0,
+        )
+        seed_session.add_all([channel, video, run])
+        await seed_session.flush()
+        timestamp = datetime.now(timezone.utc)
+        seed_session.add_all(
+            [
+                CrawlRunStageEvent(
+                    run_id=run.id,
+                    stage="harvest_search",
+                    started_at=timestamp,
+                    outcome="success",
+                ),
+                TranscriptAttemptRecord(
+                    video_id=video.video_id,
+                    run_id=run.id,
+                    provider="yt_dlp",
+                    sequence=1,
+                    started_at=timestamp,
+                    outcome="success",
+                ),
+                YoutubeVideoAnalysisRun(
+                    video_id=video.video_id,
+                    run_type="url_summary",
+                    state="done",
+                    owner_crawl_run_id=run.id,
+                ),
+                MediaAsset(
+                    asset_type="frame",
+                    video_id=video.video_id,
+                    storage_provider="rustfs",
+                    bucket="kor-travel-concierge",
+                    object_key="features/delete-job-video/frame.jpg",
+                    object_uri="rustfs://features/delete-job-video/frame.jpg",
+                    retention_policy="infinite",
+                ),
+            ]
+        )
+        await seed_session.commit()
+        job_id = run.id
+
+    deleted = await client.delete(f"/api/v1/runs/{job_id}")
+    assert deleted.status_code == 200
+    assert deleted.json() == {"job_id": str(job_id), "deleted": True}
+    assert (await client.get(f"/api/v1/runs/{job_id}")).status_code == 404
+
+    async with session_factory() as verify_session:
+        assert await verify_session.get(CrawlRun, job_id) is None
+        assert await verify_session.get(YoutubeVideo, video.video_id) is not None
+        assert (
+            await verify_session.scalar(
+                select(MediaAsset.id).where(MediaAsset.video_id == video.video_id)
+            )
+            is not None
+        )
+        assert (
+            await verify_session.scalar(
+                select(CrawlRunStageEvent.id).where(
+                    CrawlRunStageEvent.run_id == job_id
+                )
+            )
+            is None
+        )
+        transcript = await verify_session.scalar(
+            select(TranscriptAttemptRecord).where(
+                TranscriptAttemptRecord.video_id == video.video_id
+            )
+        )
+        assert transcript is not None and transcript.run_id is None
+        analysis = await verify_session.scalar(
+            select(YoutubeVideoAnalysisRun).where(
+                YoutubeVideoAnalysisRun.video_id == video.video_id
+            )
+        )
+        assert analysis is not None and analysis.owner_crawl_run_id is None
+        audit = await verify_session.scalar(
+            select(AuditLog)
+            .where(
+                AuditLog.action == "run.delete",
+                AuditLog.target_id == str(job_id),
+            )
+            .order_by(AuditLog.id.desc())
+        )
+        assert audit is not None
+
+
+async def test_delete_run_rejects_active_and_missing_runs(client, session_factory):
+    from ktc.models import CrawlRun, RunState
+
+    async with session_factory() as seed_session:
+        pending = CrawlRun(
+            job_type="harvest",
+            source="web",
+            state=RunState.PENDING,
+            progress=0.0,
+        )
+        seed_session.add(pending)
+        await seed_session.commit()
+        await seed_session.refresh(pending)
+        pending_id = pending.id
+
+    active = await client.delete(f"/api/v1/runs/{pending_id}")
+    assert active.status_code == 409
+    assert "종료된 작업" in active.json()["detail"]
+
+    missing = await client.delete("/api/v1/runs/999999")
+    assert missing.status_code == 404
+
+
+async def test_delete_run_rejects_origin_with_active_restart(client, session_factory):
+    from ktc.services import crawl_run_service
+
+    async with session_factory() as seed_session:
+        origin = await crawl_run_service.create_run(
+            seed_session,
+            job_type="harvest",
+            source="web",
+            target_type="keyword",
+            target_id="재시작 보호",
+        )
+        await crawl_run_service.mark_failed(seed_session, origin.id, error="테스트 실패")
+        origin_id = origin.id
+
+    restarted = await client.post(f"/api/v1/runs/{origin_id}/restart")
+    assert restarted.status_code == 200
+
+    deleted = await client.delete(f"/api/v1/runs/{origin_id}")
+    assert deleted.status_code == 409
+    assert "활성 재시작" in deleted.json()["detail"]
+
+
 async def test_stop_pending_and_running_response_contract(client, session):
     from sqlalchemy import select
 
