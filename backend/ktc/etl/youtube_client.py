@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from typing import Any
 
 import httpx
@@ -122,10 +123,14 @@ class YouTubeClient:
                     continue
                 raise YouTubeApiError(
                     f"YouTube API {path} 네트워크 오류(attempts={attempt + 1}; "
-                    f"error={type(exc).__name__}: {_clip(str(exc))})"
+                    f"error={type(exc).__name__}: "
+                    f"{_mask_api_key(_clip(str(exc)), self._api_key)})"
                 ) from exc
 
-        raise YouTubeApiError(f"YouTube API {path} 호출 실패: {last_error}")
+        raise YouTubeApiError(
+            f"YouTube API {path} 호출 실패: "
+            f"{_mask_api_key(_clip(str(last_error)), self._api_key)}"
+        )
 
     def _ensure_quota(self, cost: int) -> None:
         if self._quota_budget_units is None:
@@ -250,6 +255,16 @@ def _chunks(values: list[str], size: int) -> list[list[str]]:
 def _mask_api_key(value: str, api_key: str) -> str:
     if api_key:
         value = value.replace(api_key, "***")
+    value = re.sub(
+        r"(?i)((?:x-goog-api-key|api[_-]?key|[?&]key)\s*[:=])[^\s&;,]+",
+        r"\1***",
+        value,
+    )
+    value = re.sub(
+        r"(?i)(authorization\s*:\s*(?:bearer\s+)?)\S+",
+        r"\1***",
+        value,
+    )
     return value
 
 

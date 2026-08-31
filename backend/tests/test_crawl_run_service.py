@@ -179,6 +179,22 @@ async def test_delete_run_rejects_completed_restart_child(session):
     assert await svc.get_run(session, child.id) is not None
 
 
+async def test_delete_run_rejects_payload_dependent_child(session):
+    origin = await _failed_run(session)
+    child = await svc.create_run(
+        session,
+        job_type="poi_batch",
+        source="scheduler",
+        payload={"source_job_id": origin.id, "video_ids": ["video-1"]},
+    )
+
+    with pytest.raises(ValueError, match="연결된 후속 작업"):
+        await svc.delete_run(session, origin.id)
+
+    assert await svc.get_run(session, origin.id) is not None
+    assert await svc.get_run(session, child.id) is not None
+
+
 async def test_heartbeat_and_done(session):
     run = await svc.create_run(session, job_type="harvest", source="web")
     await svc.claim_next_pending(session)

@@ -35,6 +35,8 @@ class TranscriptAttemptRecord(Base):
         # 영상 단위 조회는 항상 `video_id` + `id` 오름차순(시도 순서). 복합 인덱스의
         # 선두 컬럼이 video_id라 video_id 단독 조회도 이 인덱스로 커버된다.
         Index("ix_transcript_attempts_video_id_id", "video_id", "id"),
+        # crawl run 삭제 시 SET NULL 대상만 빠르게 찾는다.
+        Index("ix_transcript_attempts_run_id", "run_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

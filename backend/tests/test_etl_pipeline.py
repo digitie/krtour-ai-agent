@@ -592,6 +592,25 @@ async def test_youtube_client_masks_api_key_on_http_error():
     assert "The request is not allowed" in message
 
 
+async def test_youtube_client_masks_api_key_on_network_error():
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.RequestError(
+            "proxy failed: X-goog-api-key=secret-key", request=request
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        client = YouTubeClient(api_key="test-key", http_client=http, max_retries=0)
+        try:
+            await client.search_list(query="제주")
+        except YouTubeApiError as exc:
+            message = str(exc)
+        else:  # pragma: no cover - 실패해야 하는 경로
+            raise AssertionError("YouTubeApiError가 발생해야 한다")
+
+    assert "secret-key" not in message
+    assert "X-goog-api-key=***" in message
+
+
 async def test_youtube_client_enforces_quota_budget():
     async with httpx.AsyncClient(transport=httpx.MockTransport(_handler)) as http:
         client = YouTubeClient(

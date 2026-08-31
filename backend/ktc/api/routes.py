@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import math
 from datetime import datetime, timezone
 from typing import Annotated, Any, Literal
@@ -81,12 +82,22 @@ API_V1_PREFIX = "/api/v1"
 
 router = APIRouter(prefix=API_V1_PREFIX, dependencies=[Depends(require_api_key)])
 
+logger = logging.getLogger(__name__)
+
 EXPORT_DESTINATION_LIMIT_DEFAULT = 500
 EXPORT_DESTINATION_LIMIT_MAX = 1_000
 CandidateId = Annotated[
     int,
     Path(ge=1, le=list_pagination.MAX_DB_INTEGER_ID),
 ]
+
+
+def _record_run_action(action: str, result: str) -> None:
+    """Prometheus 기록 실패가 이미 커밋된 작업 응답을 500으로 바꾸지 않게 한다."""
+    try:
+        telemetry.record_run_action(action=action, result=result)
+    except Exception:  # pragma: no cover - prometheus client 장애 격리
+        logger.exception("작업 telemetry 기록 실패(action=%s, result=%s)", action, result)
 
 
 class HarvestRequest(BaseModel):
@@ -1157,7 +1168,8 @@ async def delete_run(
     """종료된 작업 이력을 삭제한다.
 
     작업 단계 이벤트와 작업 행만 정리하고, 수집된 영상·장소·원본 미디어 및 작업과
-    별도로 보존해야 하는 transcript/analysis 관찰 행은 보존한다. 삭제와 감사 기록은
+    별도로 보존해야 하는 transcript/analysis 관찰 행은 보존한다. 연결된 재시작·후속
+    작업이 남아 있으면 lineage를 보존하기 위해 409로 거부한다. 삭제와 감사 기록은
     하나의 transaction으로 커밋한다.
     """
     try:
@@ -1165,7 +1177,7 @@ async def delete_run(
             session, job_id, commit=False
         )
         if transition is None:
-            telemetry.record_run_action(action="delete", result="not_found")
+            _record_run_action("delete", "not_found")
             raise HTTPException(status_code=404, detail="job not found")
         await audit_service.record(
             session,
@@ -1177,17 +1189,17 @@ async def delete_run(
             commit=False,
         )
         await session.commit()
-        telemetry.record_run_action(action="delete", result="success")
+        _record_run_action("delete", "success")
     except HTTPException:
         await session.rollback()
         raise
     except ValueError as exc:
         await session.rollback()
-        telemetry.record_run_action(action="delete", result="conflict")
+        _record_run_action("delete", "conflict")
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except Exception:
         await session.rollback()
-        telemetry.record_run_action(action="delete", result="error")
+        _record_run_action("delete", "error")
         raise
     return {"job_id": str(job_id), "deleted": True}
 

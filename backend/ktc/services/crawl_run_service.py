@@ -42,6 +42,9 @@ from ktc.services.list_pagination import (
 
 logger = logging.getLogger(__name__)
 
+# 삭제·실행 경합을 직렬화하는 PostgreSQL session advisory lock namespace.
+CRAWL_RUN_EXECUTION_LOCK_PREFIX = "ktc:crawl-run-execution:"
+
 # stale 판단 기본 임계값(초). heartbeat가 이 시간 이상 갱신되지 않으면 재투입 대상.
 DEFAULT_STALE_THRESHOLD_SECONDS = 300
 # 최대 재시도 횟수. 초과 시 failed로 격리한다.
@@ -98,6 +101,11 @@ class RunQueueSnapshot:
     pending_count: int
     open_attention_count: int
     has_more: bool
+
+
+def crawl_run_execution_lock_name(run_id: int) -> str:
+    """작업 실행 lease와 삭제 guard가 공유하는 advisory lock 이름."""
+    return f"{CRAWL_RUN_EXECUTION_LOCK_PREFIX}{run_id}"
 
 
 def _clamp_progress(progress: float) -> float:
@@ -163,6 +171,42 @@ def _clip(value: str | None, limit: int) -> str | None:
     if value is None:
         return None
     return value[:limit]
+
+
+def _payload_references_run(payload_json: str | None, run_id: int) -> bool:
+    """payload 기반 후속 작업이 특정 부모 작업을 가리키는지 확인한다."""
+    if not payload_json:
+        return False
+    try:
+        payload = json.loads(payload_json)
+    except json.JSONDecodeError:
+        return False
+    if not isinstance(payload, dict):
+        return False
+    source_job_id = payload.get("source_job_id")
+    if isinstance(source_job_id, bool) or source_job_id is None:
+        return False
+    return str(source_job_id) == str(run_id)
+
+
+async def _list_dependent_run_states(
+    session: AsyncSession, run_id: int
+) -> list[str]:
+    """payload lineage로 연결된 후속 crawl run의 상태를 반환한다."""
+    rows = (
+        await session.execute(
+            select(CrawlRun.state, CrawlRun.payload_json).where(
+                CrawlRun.id != run_id,
+                CrawlRun.payload_json.is_not(None),
+                CrawlRun.payload_json.contains('"source_job_id"'),
+            )
+        )
+    ).all()
+    return [
+        state.value if isinstance(state, RunState) else str(state)
+        for state, payload_json in rows
+        if _payload_references_run(payload_json, run_id)
+    ]
 
 
 async def record_stage_event(
@@ -380,10 +424,11 @@ async def delete_run(
     """종료된 작업 1건과 종속된 작업 이벤트를 삭제한다.
 
     실행 중 작업은 worker가 상태를 갱신하는 동안 사라지지 않도록 삭제하지 않는다.
-    재시작 자식이 있는 원본은 먼저 자식 작업을 정리하도록 막아 lineage가 조용히 끊기지
-    않게 한다. DB FK의 삭제 정책에 따라 stage event는 CASCADE되고 transcript/analysis
-    관찰 이력의 run 참조는 SET NULL된다. 영상·장소·미디어 자체는 삭제하지 않는다.
-    원본 행 잠금으로 restart 생성과의 경합도 직렬화한다.
+    재시작·payload 후속 자식이 있는 원본은 먼저 자식 작업을 정리하도록 막아 lineage가
+    조용히 끊기지 않게 한다. 실행 worker가 보유한 advisory lease도 확인해 stale worker의
+    늦은 side effect와 삭제가 경합하지 않게 한다. DB FK의 삭제 정책에 따라 stage event는
+    CASCADE되고 transcript/analysis 관찰 이력의 run 참조는 SET NULL된다. 영상·장소·미디어
+    자체는 삭제하지 않는다. 원본 행 잠금으로 restart 생성과의 경합도 직렬화한다.
     """
     run = (
         await session.execute(
@@ -397,6 +442,18 @@ async def delete_run(
         return None
     if run.state not in TERMINAL_RUN_STATES:
         raise ValueError("종료된 작업(done/failed/cancelled)만 삭제할 수 있습니다")
+
+    lock_acquired = await session.scalar(
+        select(
+            func.pg_try_advisory_xact_lock(
+                func.hashtextextended(crawl_run_execution_lock_name(run.id), 0)
+            )
+        )
+    )
+    if not lock_acquired:
+        raise ValueError(
+            "작업 실행자가 아직 종료되지 않아 삭제할 수 없습니다. 잠시 후 다시 시도해 주세요"
+        )
 
     restart_states = (
         await session.execute(
@@ -414,6 +471,19 @@ async def delete_run(
     if restart_states:
         raise ValueError(
             "연결된 재시작 작업이 있어 삭제할 수 없습니다. 먼저 재시작 작업을 삭제해 주세요"
+        )
+    dependent_states = await _list_dependent_run_states(session, run.id)
+    if dependent_states:
+        if any(
+            state in (RunState.PENDING.value, RunState.RUNNING.value)
+            for state in dependent_states
+        ):
+            raise ValueError(
+                "연결된 후속 작업이 실행 중이거나 대기 중이라 삭제할 수 없습니다. "
+                "먼저 후속 작업을 중지해 주세요"
+            )
+        raise ValueError(
+            "연결된 후속 작업이 있어 삭제할 수 없습니다. 먼저 후속 작업을 삭제해 주세요"
         )
 
     transition = DeleteRunTransition(

@@ -43,14 +43,6 @@ RUN_METRICS_REFRESH_SUCCESS = Gauge(
 )
 
 _LABEL_RE = re.compile(r"[^A-Za-z0-9_.:/{}-]+")
-_PATH_ID_RE = re.compile(
-    r"/(?:\d+|[0-9a-f]{8}-[0-9a-f-]{27,36})(?=/|$)", re.IGNORECASE
-)
-_STRING_ID_PATH_RES = (
-    re.compile(
-        r"^(?P<prefix>/api/v1/(?:videos|themes/video|destinations/videos)/)[^/]+"
-    ),
-)
 
 
 def label_value(value: Any, *, max_length: int = 120) -> str:
@@ -60,17 +52,15 @@ def label_value(value: Any, *, max_length: int = 120) -> str:
 
 
 def request_path(request: Any) -> str:
-    """가능하면 FastAPI route template을 쓰고, 아니면 ID를 치환한다."""
+    """FastAPI route template을 쓰고, 매칭되지 않은 요청은 한 시계열로 묶는다."""
     route = request.scope.get("route")
     route_path = getattr(route, "path", None)
     if route_path:
         return label_value(route_path)
-    path = request.url.path
-    for pattern in _STRING_ID_PATH_RES:
-        path = pattern.sub(
-            lambda match: f"{match.group('prefix')}{{id}}", path, count=1
-        )
-    return label_value(_PATH_ID_RE.sub("/{id}", path))
+    # route가 없는 404·OPTIONS 요청에 원시 path를 넣으면 nonce/임의 ID마다
+    # Prometheus 시계열이 생긴다. 유효한 route는 FastAPI가 template을 채우므로
+    # 미매칭 요청은 의도적으로 고정 label만 사용한다.
+    return "/unmatched"
 
 
 def record_http_request(

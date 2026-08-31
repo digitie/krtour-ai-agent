@@ -542,6 +542,32 @@ async def test_delete_run_rejects_origin_with_active_restart(client, session_fac
     assert "활성 재시작" in deleted.json()["detail"]
 
 
+async def test_delete_run_succeeds_when_action_telemetry_fails(
+    client, session_factory, monkeypatch
+):
+    from ktc.api import routes
+    from ktc.services import crawl_run_service
+
+    async with session_factory() as seed_session:
+        run = await crawl_run_service.create_run(
+            seed_session,
+            job_type="harvest",
+            source="web",
+        )
+        await crawl_run_service.mark_failed(seed_session, run.id, error="테스트 실패")
+        job_id = run.id
+
+    def fail_record(*_args, **_kwargs):
+        raise RuntimeError("telemetry unavailable")
+
+    monkeypatch.setattr(routes.telemetry, "record_run_action", fail_record)
+
+    deleted = await client.delete(f"/api/v1/runs/{job_id}")
+
+    assert deleted.status_code == 200
+    assert deleted.json() == {"job_id": str(job_id), "deleted": True}
+
+
 async def test_stop_pending_and_running_response_contract(client, session):
     from sqlalchemy import select
 
