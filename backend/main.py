@@ -14,11 +14,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ktc import telemetry
 from ktc.api import router
 from ktc.core.config import get_settings
 from ktc.core.database import get_session, init_db
 from ktc.core.security import require_prometheus_access
-from ktc import telemetry
 
 
 def _warn_on_risky_auth_config() -> None:
@@ -103,6 +103,7 @@ def create_app() -> FastAPI:
             await telemetry.refresh_run_metrics(session)
         except Exception:
             # 지표 endpoint 자체는 DB 집계가 잠시 실패해도 process/HTTP 지표를 제공한다.
+            telemetry.mark_run_metrics_refresh_failed()
             logging.getLogger("ktc.telemetry").exception(
                 "Prometheus 작업 지표 갱신에 실패했다"
             )

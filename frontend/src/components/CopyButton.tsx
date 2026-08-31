@@ -18,27 +18,37 @@ export function CopyButton({
   size?: "xs" | "sm";
 }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
   return (
-    <Button
-      type="button"
-      size={size}
-      variant="outline"
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(text);
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 1500);
-        } catch {
-          // 클립보드 권한이 막힌 환경에서는 조용히 무시한다.
-        }
-      }}
-    >
-      {copied ? (
-        <CheckIcon data-icon="inline-start" />
-      ) : (
-        <CopyIcon data-icon="inline-start" />
-      )}
-      {copied ? copiedLabel : label}
-    </Button>
+    <div className="flex flex-col items-end gap-1">
+      <Button
+        type="button"
+        size={size}
+        variant="outline"
+        onClick={async () => {
+          setCopyError(false);
+          try {
+            await navigator.clipboard.writeText(text);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1500);
+          } catch {
+            setCopied(false);
+            setCopyError(true);
+          }
+        }}
+      >
+        {copied ? (
+          <CheckIcon data-icon="inline-start" />
+        ) : (
+          <CopyIcon data-icon="inline-start" />
+        )}
+        {copied ? copiedLabel : label}
+      </Button>
+      {copyError ? (
+        <p role="alert" className="text-[11px] text-destructive">
+          클립보드 복사에 실패했습니다. 오류 상세를 직접 선택해 복사하세요.
+        </p>
+      ) : null}
+    </div>
   );
 }

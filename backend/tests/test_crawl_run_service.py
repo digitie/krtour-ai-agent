@@ -166,6 +166,19 @@ async def test_delete_run_rejects_active_restart_child(session):
     assert await svc.get_run(session, child.id) is not None
 
 
+async def test_delete_run_rejects_completed_restart_child(session):
+    origin = await _failed_run(session)
+    child, created = await svc.create_restart_run(session, origin.id, source="web")
+
+    assert created is True
+    await svc.mark_done(session, child.id)
+    with pytest.raises(ValueError, match="연결된 재시작"):
+        await svc.delete_run(session, origin.id)
+
+    assert await svc.get_run(session, origin.id) is not None
+    assert await svc.get_run(session, child.id) is not None
+
+
 async def test_heartbeat_and_done(session):
     run = await svc.create_run(session, job_type="harvest", source="web")
     await svc.claim_next_pending(session)

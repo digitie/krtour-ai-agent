@@ -37,10 +37,19 @@ RUN_ERRORS_BY_KIND = Gauge(
     "실패 상태 작업의 원인 분류별 수",
     ("job_type", "kind"),
 )
+RUN_METRICS_REFRESH_SUCCESS = Gauge(
+    "ktc_crawl_run_metrics_refresh_success",
+    "작업 DB 지표의 마지막 갱신 성공 여부(1=성공, 0=실패)",
+)
 
-_LABEL_RE = re.compile(r"[^A-Za-z0-9_.:/-]+")
+_LABEL_RE = re.compile(r"[^A-Za-z0-9_.:/{}-]+")
 _PATH_ID_RE = re.compile(
     r"/(?:\d+|[0-9a-f]{8}-[0-9a-f-]{27,36})(?=/|$)", re.IGNORECASE
+)
+_STRING_ID_PATH_RES = (
+    re.compile(
+        r"^(?P<prefix>/api/v1/(?:videos|themes/video|destinations/videos)/)[^/]+"
+    ),
 )
 
 
@@ -56,7 +65,12 @@ def request_path(request: Any) -> str:
     route_path = getattr(route, "path", None)
     if route_path:
         return label_value(route_path)
-    return label_value(_PATH_ID_RE.sub("/{id}", request.url.path))
+    path = request.url.path
+    for pattern in _STRING_ID_PATH_RES:
+        path = pattern.sub(
+            lambda match: f"{match.group('prefix')}{{id}}", path, count=1
+        )
+    return label_value(_PATH_ID_RE.sub("/{id}", path))
 
 
 def record_http_request(
@@ -83,14 +97,17 @@ def record_run_action(*, action: str, result: str) -> None:
 def classify_error(error: str | None) -> str:
     """사용자에게 노출되는 오류 문자열을 운영용 원인 종류로 분류한다."""
     value = (error or "").lower()
-    if "youtube api" in value or ("youtube" in value and "호출" in value):
-        if "quota" in value or "쿼터" in value:
-            return "youtube_quota"
-        return "youtube_api"
     if any(
         token in value for token in ("timeout", "timed out", "네트워크", "connection")
     ):
         return "network"
+    if "youtube api" in value or (
+        "youtube" in value
+        and ("호출" in value or "quota" in value or "쿼터" in value)
+    ):
+        if "quota" in value or "쿼터" in value:
+            return "youtube_quota"
+        return "youtube_api"
     if any(token in value for token in ("validation", "검증", "입력")):
         return "validation"
     return "unknown"
@@ -128,3 +145,9 @@ async def refresh_run_metrics(session: AsyncSession) -> None:
     RUN_ERRORS_BY_KIND.clear()
     for (job_type, kind), count in error_counts.items():
         RUN_ERRORS_BY_KIND.labels(job_type, kind).set(count)
+    RUN_METRICS_REFRESH_SUCCESS.set(1)
+
+
+def mark_run_metrics_refresh_failed() -> None:
+    """DB 집계가 실패했음을 stale gauge와 구분할 상태 지표에 남긴다."""
+    RUN_METRICS_REFRESH_SUCCESS.set(0)

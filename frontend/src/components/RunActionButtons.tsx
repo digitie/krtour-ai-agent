@@ -179,7 +179,7 @@ export function RunActionButtons({
             />
             <ConfirmActionButton
               title="이 작업을 삭제할까요?"
-              description="종료된 작업 기록과 상태 로그를 삭제합니다. 수집된 영상·장소·원본 미디어는 삭제하지 않습니다. 이 작업은 되돌릴 수 없습니다."
+              description="종료된 작업 기록과 상태 로그를 삭제합니다. 수집된 영상·장소·원본 미디어는 삭제하지 않습니다. 연결된 재시작 작업이 있으면 먼저 정리해야 합니다. 이 작업은 되돌릴 수 없습니다."
               confirmLabel="삭제"
               onConfirm={() => deleteMutation.mutate()}
               trigger={

@@ -328,6 +328,7 @@ async def test_prometheus_metrics_endpoint_shape(client):
     assert "ktc_http_request_duration_seconds" in body
     assert "ktc_crawl_runs" in body
     assert "ktc_crawl_run_errors" in body
+    assert "ktc_crawl_run_metrics_refresh_success" in body
 
 
 async def test_run_videos_endpoint(client, session):

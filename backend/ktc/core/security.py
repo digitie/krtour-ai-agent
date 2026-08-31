@@ -236,6 +236,14 @@ async def require_prometheus_access(
             detail="Prometheus scrape 인증이 필요하다.",
         )
 
+    # uvicorn의 proxy header 신뢰 설정이 넓으면 X-Forwarded-For가 request.client를
+    # 덮어쓸 수 있다. key 없는 경로에서는 forwarded header 자체를 거부해 loopback/CIDR
+    # 우회를 막는다. 프록시 뒤 scrape가 필요하면 전용 key 경로를 사용한다.
+    if request.headers.get("x-forwarded-for") or request.headers.get("x-real-ip"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="forwarded peer는 Prometheus 전용 key가 필요하다.",
+        )
     if _peer_in_cidrs(request, settings.prometheus_metrics_allowed_cidrs):
         return
     raise HTTPException(

@@ -73,6 +73,8 @@ export function JobLogView({ status }: { status: JobLogLike }) {
           <p className="text-xs font-semibold text-destructive">오류 상세</p>
           <pre
             aria-label="오류 상세"
+            role="region"
+            tabIndex={0}
             className="max-h-48 overflow-auto break-words whitespace-pre-wrap text-xs text-destructive"
           >
             {status.last_error}
@@ -84,7 +86,12 @@ export function JobLogView({ status }: { status: JobLogLike }) {
         <p className="text-xs text-muted-foreground">
           상태 로그 ({status.status_logs.length})
         </p>
-        <div className="flex max-h-72 flex-col gap-1.5 overflow-y-auto rounded-panel border border-border p-2">
+        <div
+          aria-label="상태 로그"
+          className="flex max-h-72 flex-col gap-1.5 overflow-y-auto rounded-panel border border-border p-2"
+          role="region"
+          tabIndex={0}
+        >
           {status.status_logs.length === 0 ? (
             <p className="text-xs text-muted-foreground">로그가 없습니다.</p>
           ) : (

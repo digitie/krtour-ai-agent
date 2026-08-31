@@ -1156,8 +1156,9 @@ async def delete_run(
 ) -> dict[str, Any]:
     """종료된 작업 이력을 삭제한다.
 
-    작업 이벤트와 작업 행만 정리하고, 수집된 영상·장소·원본 미디어·관찰 이력은
-    보존한다. 삭제와 감사 기록은 하나의 transaction으로 커밋한다.
+    작업 단계 이벤트와 작업 행만 정리하고, 수집된 영상·장소·원본 미디어 및 작업과
+    별도로 보존해야 하는 transcript/analysis 관찰 행은 보존한다. 삭제와 감사 기록은
+    하나의 transaction으로 커밋한다.
     """
     try:
         transition = await crawl_run_service.delete_run(

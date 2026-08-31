@@ -380,8 +380,8 @@ async def delete_run(
     """종료된 작업 1건과 종속된 작업 이벤트를 삭제한다.
 
     실행 중 작업은 worker가 상태를 갱신하는 동안 사라지지 않도록 삭제하지 않는다.
-    활성 재시작 자식이 있는 원본도 먼저 중지하도록 막아 lineage가 조용히 끊기지 않게
-    한다. DB FK의 삭제 정책에 따라 stage event는 CASCADE되고 transcript/analysis
+    재시작 자식이 있는 원본은 먼저 자식 작업을 정리하도록 막아 lineage가 조용히 끊기지
+    않게 한다. DB FK의 삭제 정책에 따라 stage event는 CASCADE되고 transcript/analysis
     관찰 이력의 run 참조는 SET NULL된다. 영상·장소·미디어 자체는 삭제하지 않는다.
     원본 행 잠금으로 restart 생성과의 경합도 직렬화한다.
     """
@@ -398,17 +398,22 @@ async def delete_run(
     if run.state not in TERMINAL_RUN_STATES:
         raise ValueError("종료된 작업(done/failed/cancelled)만 삭제할 수 있습니다")
 
-    active_restart_id = await session.scalar(
-        select(CrawlRun.id)
-        .where(
-            CrawlRun.restart_of_run_id == run.id,
-            CrawlRun.state.in_((RunState.PENDING, RunState.RUNNING)),
+    restart_states = (
+        await session.execute(
+            select(CrawlRun.state).where(
+                CrawlRun.restart_of_run_id == run.id,
+            )
         )
-        .limit(1)
-    )
-    if active_restart_id is not None:
+    ).scalars().all()
+    if any(
+        state in (RunState.PENDING, RunState.RUNNING) for state in restart_states
+    ):
         raise ValueError(
             "활성 재시작 작업이 있어 삭제할 수 없습니다. 먼저 재시작 작업을 중지해 주세요"
+        )
+    if restart_states:
+        raise ValueError(
+            "연결된 재시작 작업이 있어 삭제할 수 없습니다. 먼저 재시작 작업을 삭제해 주세요"
         )
 
     transition = DeleteRunTransition(

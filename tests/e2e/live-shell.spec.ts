@@ -48,6 +48,21 @@ test.describe('n150 live UI 셸 검증', () => {
       await expect(page.getByRole('button', { name: '뒤로' })).toBeVisible();
       await expect(page.getByRole('heading', { name: '로그와 결과' })).toBeVisible();
       await expect(page.getByRole('heading', { name: '영상 처리' })).toBeVisible();
+      const deleteButton = page.getByRole('button', { name: '삭제', exact: true });
+      if ((await deleteButton.count()) > 0) {
+        await deleteButton.first().click();
+        const deleteDialog = page.getByRole('alertdialog');
+        const cancelButton = deleteDialog.getByRole('button', {
+          name: '취소',
+          exact: true,
+        });
+        await expect(cancelButton).toBeVisible();
+        await cancelButton.click();
+      }
+      const errorDetail = page.getByLabel('오류 상세');
+      if ((await errorDetail.count()) > 0) {
+        await expect(errorDetail).toBeVisible();
+      }
       await page.goBack();
       await page.waitForURL(/\/jobs(\?|$)/);
     }
