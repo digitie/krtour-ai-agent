@@ -20,8 +20,11 @@
   작업·설정·상태의 주요 외곽 작업면과 알림/표 경계도 flat panel/hairline 언어로 통일했다.
 - **인증 화면**: 카드 프레임을 제거한 단일 가운데 로그인 열, 고정 오류 슬롯, 로딩 버튼 라벨 유지,
   footer hairline을 적용했다. 로그인 API와 route 동작은 변경하지 않았다.
-- **로컬 검증**: frontend `lint`, `type-check`, Vitest **332건**, `next build --webpack`을
-  통과했다. n150 배포 후 라이브 로그인·UI E2E 결과는 배포 검증 뒤 이 항목에 보강한다.
+- **검증**: frontend `lint`, `type-check`, Vitest **332건**, `next build --webpack`을
+  통과했다. n150에서는 UI 컨테이너 인증 환경값 존재, backend LAN `/health` 200,
+  공개 `/login` 200, 로그인 POST 200 + Set-Cookie, 잘못된 비밀번호 401을 확인했고,
+  live-shell Playwright E2E 4개를 통과했다. 공개 `/health`는 UI 인증 middleware가
+  `/login?next=/health`로 redirect하는 경로이므로 backend LAN health를 별도로 확인했다.
 
 ## 2026-08-27: 브랜드 accent 보라색 전환과 kor-travel-geo look-and-feel 정렬
 
