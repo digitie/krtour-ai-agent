@@ -69,7 +69,7 @@ export function JobLogView({ status }: { status: JobLogLike }) {
       ) : null}
 
       {status.last_error ? (
-        <div className="flex flex-col gap-1 rounded-lg border border-destructive/40 bg-destructive/5 p-2">
+        <div className="flex flex-col gap-1 rounded-control border border-destructive bg-destructive-tint p-2">
           <p className="text-xs font-semibold text-destructive">오류 상세</p>
           <pre className="max-h-48 overflow-auto break-words whitespace-pre-wrap text-xs text-destructive">
             {status.last_error}
@@ -81,7 +81,7 @@ export function JobLogView({ status }: { status: JobLogLike }) {
         <p className="text-xs text-muted-foreground">
           상태 로그 ({status.status_logs.length})
         </p>
-        <div className="flex max-h-72 flex-col gap-1.5 overflow-y-auto rounded-lg border p-2">
+        <div className="flex max-h-72 flex-col gap-1.5 overflow-y-auto rounded-panel border border-border p-2">
           {status.status_logs.length === 0 ? (
             <p className="text-xs text-muted-foreground">로그가 없습니다.</p>
           ) : (

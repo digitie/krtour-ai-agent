@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2Icon, LogInIcon } from "lucide-react";
+import { LogInIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
@@ -55,18 +55,21 @@ export function LoginForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="flex w-full max-w-sm flex-col gap-6 rounded-xl border border-surface-muted bg-card p-6 shadow-card"
+      className="flex w-full max-w-sm flex-col gap-5"
     >
       <div className="flex flex-col gap-1.5">
-        <p className="ktc-eyebrow">운영 콘솔</p>
-        <h1 className="text-[25px] font-extrabold tracking-[-0.04em]">관리자 로그인</h1>
-        <p className="text-sm text-muted-foreground">Korea Travel Concierge</p>
+        <p className="flex items-baseline gap-1.5 text-sm font-semibold tracking-tight">
+          <span>Korea Travel</span>
+          <span className="text-2xs font-medium text-text-tertiary">Concierge</span>
+        </p>
+        <h1 className="mt-4 text-xl leading-tight font-bold tracking-tight">관리자 로그인</h1>
       </div>
 
       <Field>
         <FieldLabel htmlFor="login-username">아이디</FieldLabel>
         <Input
           id="login-username"
+          name="username"
           autoComplete="username"
           value={username}
           onChange={(event) => setUsername(event.target.value)}
@@ -77,6 +80,7 @@ export function LoginForm() {
         <FieldLabel htmlFor="login-password">비밀번호</FieldLabel>
         <Input
           id="login-password"
+          name="password"
           type="password"
           autoComplete="current-password"
           autoFocus
@@ -85,26 +89,23 @@ export function LoginForm() {
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />
-        {error ? (
-          <FieldDescription
-            id="login-error"
-            role="alert"
-            aria-live="polite"
-            className="text-destructive"
-          >
-            {error}
-          </FieldDescription>
-        ) : null}
+        <FieldDescription
+          id="login-error"
+          role="alert"
+          aria-live="polite"
+          className="min-h-[1lh] text-destructive"
+        >
+          {error}
+        </FieldDescription>
       </Field>
 
-      <Button type="submit" disabled={pending}>
-        {pending ? (
-          <Loader2Icon data-icon="inline-start" className="animate-spin" />
-        ) : (
-          <LogInIcon data-icon="inline-start" />
-        )}
+      <Button type="submit" loading={pending} className="w-full">
+        <LogInIcon aria-hidden="true" data-icon="inline-start" />
         로그인
       </Button>
+      <p className="mt-5 border-t border-border pt-4 text-2xs text-text-tertiary">
+        Korea Travel Concierge · 내부 전용 콘솔
+      </p>
     </form>
   );
 }

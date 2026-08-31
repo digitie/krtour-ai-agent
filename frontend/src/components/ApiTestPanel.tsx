@@ -144,7 +144,7 @@ export function ApiTestPanel() {
 
   return (
     <div className="ktc-workspace grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-      <section className="flex flex-col gap-5 rounded-xl border border-surface-muted bg-card p-5 shadow-[var(--shadow-card)]">
+      <section className="flex flex-col gap-5 rounded-panel border border-border bg-card p-4">
         <div>
           <div className="flex items-center gap-1">
             <div>
@@ -269,7 +269,7 @@ export function ApiTestPanel() {
 
         <div className="flex flex-col gap-1.5">
           <FieldLabel>요청 경로</FieldLabel>
-          <code className="block break-all rounded-md border border-surface-muted bg-surface-subtle px-2.5 py-2 font-mono text-[12px]">
+          <code className="block break-all rounded-control border border-border bg-surface-subtle px-2.5 py-2 font-mono text-xs">
             {endpoint.method} {path}
           </code>
         </div>
@@ -292,7 +292,7 @@ export function ApiTestPanel() {
             <FieldLabel>외부 호출 예시(curl)</FieldLabel>
             <CopyButton size="xs" text={externalCurl} />
           </div>
-          <code className="block break-all rounded-md border border-surface-muted bg-surface-subtle px-2.5 py-2 font-mono text-[12px] text-text-secondary">
+          <code className="block break-all rounded-control border border-border bg-surface-subtle px-2.5 py-2 font-mono text-xs text-text-secondary">
             {externalCurl}
           </code>
         </div>
@@ -339,7 +339,7 @@ function ThemeHints({
           key={item.value}
           type="button"
           onClick={() => onPick(item.value)}
-          className="inline-flex items-center gap-1 rounded-md border border-surface-muted bg-surface-subtle px-2 py-0.5 text-[11px] text-text-secondary transition-colors hover:border-brand/40 hover:text-text-primary"
+          className="inline-flex items-center gap-1 rounded-control border border-border bg-surface-subtle px-2 py-0.5 text-2xs text-text-secondary transition-[color,background-color,border-color] duration-fast hover:border-brand hover:text-text-primary"
           title={item.value}
         >
           <span className="max-w-[10rem] truncate">{item.title}</span>
@@ -379,7 +379,7 @@ function ResponseView({ result }: { result: ApiProbeResult }) {
           <CopyButton size="xs" text={pretty} label="본문 복사" />
         </span>
       </div>
-      <pre className="max-h-[28rem] overflow-auto rounded-lg border border-surface-muted bg-surface-subtle p-3 text-[12px] whitespace-pre-wrap">
+      <pre className="max-h-[28rem] overflow-auto rounded-panel border border-border bg-surface-subtle p-3 text-xs whitespace-pre-wrap">
         {pretty}
       </pre>
     </div>

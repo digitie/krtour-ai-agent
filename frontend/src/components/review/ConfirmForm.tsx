@@ -81,13 +81,13 @@ export function ConfirmForm({
 }: ConfirmFormProps) {
   return (
     <>
-      <div className="flex flex-col gap-2 rounded-xl border p-3">
+      <div className="flex flex-col gap-2 rounded-control border border-border p-3">
         <p className="flex items-center gap-1.5 text-sm font-medium">
           <MapPinIcon className="size-4 text-muted-foreground" />
           확정 정보
         </p>
         {selectedHit ? (
-          <div className="flex flex-col gap-1 rounded-lg bg-muted/60 p-2 text-xs">
+          <div className="flex flex-col gap-1 rounded-control bg-surface-subtle p-2 text-xs">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="font-medium">선택 원본</span>
               <Badge variant="outline">
@@ -202,7 +202,7 @@ export function ConfirmForm({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div
-            className="rounded-lg border bg-muted/40 px-3 py-2"
+            className="rounded-control border border-border bg-surface-subtle px-3 py-2"
             aria-label="근접 중복 확인 대상"
           >
             <p className="text-xs text-muted-foreground">확정하려는 장소</p>
@@ -214,7 +214,7 @@ export function ConfirmForm({
             {(nearbyConflict?.places ?? []).map((place) => (
               <div
                 key={place.placeId}
-                className="flex items-start justify-between gap-3 rounded-lg border p-3"
+                className="flex items-start justify-between gap-3 rounded-control border border-border p-3"
               >
                 <div className="min-w-0 text-xs">
                   <p className="font-medium">{place.name}</p>

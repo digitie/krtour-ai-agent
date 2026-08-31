@@ -111,7 +111,7 @@ export function SettingsPanel() {
 
   if (settingsQuery.isLoading) {
     return (
-      <p className="rounded-lg border border-surface-muted bg-card p-4 text-sm text-text-secondary">
+      <p className="rounded-panel border border-border bg-card p-4 text-sm text-text-secondary">
         설정을 불러오는 중입니다.
       </p>
     );
@@ -119,7 +119,7 @@ export function SettingsPanel() {
 
   if (!settings) {
     return (
-      <p role="alert" className="rounded-lg border border-destructive/30 bg-card p-4 text-sm text-destructive">
+      <p role="alert" className="rounded-panel border border-destructive bg-card p-4 text-sm text-destructive">
         {settingsQuery.error?.message ?? "설정을 불러오지 못했습니다."}
       </p>
     );
@@ -127,7 +127,7 @@ export function SettingsPanel() {
 
   return (
     <div className="ktc-workspace grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-      <section className="flex flex-col gap-5 rounded-xl border border-surface-muted bg-card p-5 shadow-[var(--shadow-card)]">
+      <section className="flex flex-col gap-5 rounded-panel border border-border bg-card p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="ktc-eyebrow mb-1">실행 기준</p>
@@ -207,7 +207,7 @@ export function SettingsPanel() {
         ) : null}
       </section>
 
-      <section className="flex flex-col gap-5 rounded-xl border border-surface-muted bg-card p-5 shadow-[var(--shadow-card)]">
+      <section className="flex flex-col gap-5 rounded-panel border border-border bg-card p-4">
         <div>
           <p className="ktc-eyebrow mb-1">연결 관리</p>
           <h2 className="text-[18px] font-extrabold tracking-[-0.025em]">API 키</h2>
@@ -245,7 +245,7 @@ export function SettingsPanel() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-5 rounded-xl border border-surface-muted bg-card p-5 shadow-[var(--shadow-card)]">
+      <section className="flex flex-col gap-5 rounded-panel border border-border bg-card p-4">
         <div>
           <div className="flex items-center gap-1">
             <div>
@@ -336,12 +336,12 @@ export function SettingsPanel() {
             </Button>
           </div>
         ) : null}
-        <div className="max-h-72 overflow-y-auto rounded-lg border border-surface-muted">
+        <div className="max-h-72 overflow-y-auto rounded-panel border border-border">
           {(publicKeysQuery.data ?? []).length > 0 ? (
             (publicKeysQuery.data ?? []).map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between gap-2 border-b border-surface-muted px-3 py-2 last:border-b-0"
+                className="flex items-center justify-between gap-2 border-b border-border px-3 py-2 last:border-b-0"
               >
                 <div className="min-w-0">
                   <p className="truncate text-[14px] font-medium">

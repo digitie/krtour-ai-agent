@@ -27,6 +27,10 @@
 
 ## 완료
 
+- [x] **운영 콘솔 UI 최신 기준 레포 정렬**: 2026-08-31 `kor-travel-map` `origin/main`
+  (2c1cf954) 기준으로 Rail 그룹 메뉴, 접힘 상태, header band, flat panel, StatStrip, 폼·표·dialog
+  primitive를 Concierge의 실제 route에 맞춰 정렬했다. 최신 레포의 초록색은 도입하지 않고 현재
+  보라색 accent와 짙은 보라색 Rail 색상톤을 유지했다. 상세는 `docs/journal.md` 최신 항목 참조.
 - [x] **브랜드 accent 보라색 전환·kor-travel-geo look-and-feel 정렬**: 단일 accent brand를
   초록에서 보라(violet-600/700/100)로 전환하고, 카드·다이얼로그·버튼 반경(12px→8px)·그림자
   경량화·`Input`/`Textarea` 44px/8px 정렬·`.ktc-eyebrow` 수치를 kor-travel-geo-ui

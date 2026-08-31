@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { QueryProvider } from "@/components/QueryProvider";
+import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

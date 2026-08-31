@@ -1,4 +1,5 @@
 "use client";
+/* Hallmark · genre: editorial-utilitarian · macrostructure: Rail-Workbench · design-system: design.md · designed-as-app */
 
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -10,33 +11,68 @@ import {
   ListChecksIcon,
   LogOutIcon,
   MapIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
   PlugIcon,
   SettingsIcon,
+  type LucideIcon,
 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { JobStatusLink } from "@/components/JobStatusLink";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { pickActiveNavHref } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
-// 주 그룹: 일상 흐름(결과·수집·검수·작업·설정). 보조 그룹: 진단·개발 도구(상태·API 테스트).
-const primaryNavItems = [
-  { href: "/", label: "결과", icon: MapIcon },
-  { href: "/collect", label: "수집", icon: DownloadCloudIcon },
-  { href: "/review", label: "검수", icon: ClipboardCheckIcon },
-  { href: "/jobs", label: "작업", icon: ListChecksIcon },
-  { href: "/settings", label: "설정", icon: SettingsIcon },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+type NavGroup = {
+  label: string;
+  items: readonly NavItem[];
+};
+
+// 최신 kor-travel-map admin의 그룹형 IA를 현재 Concierge의 실제 route에 맞춰 적용한다.
+// 존재하지 않는 map route는 추가하지 않고, 기존 기능은 모두 같은 목적지로 유지한다.
+const navGroups: readonly NavGroup[] = [
+  {
+    label: "개요",
+    items: [{ href: "/", label: "결과", icon: MapIcon }],
+  },
+  {
+    label: "수집 파이프라인",
+    items: [
+      { href: "/collect", label: "수집", icon: DownloadCloudIcon },
+      { href: "/jobs", label: "작업", icon: ListChecksIcon },
+    ],
+  },
+  {
+    label: "검수",
+    items: [{ href: "/review", label: "검수", icon: ClipboardCheckIcon }],
+  },
+  {
+    label: "시스템",
+    items: [
+      { href: "/settings", label: "설정", icon: SettingsIcon },
+      { href: "/status", label: "상태", icon: ActivityIcon },
+      { href: "/api-test", label: "API 테스트", icon: PlugIcon },
+    ],
+  },
 ] as const;
 
-const secondaryNavItems = [
-  { href: "/status", label: "상태", icon: ActivityIcon },
-  { href: "/api-test", label: "API", icon: PlugIcon },
-] as const;
+const navItems = navGroups.flatMap((group) => group.items);
+const SIDEBAR_COLLAPSED_KEY = "kor-travel-concierge:sidebar-collapsed";
+const MAIN_CONTENT_ID = "main-content";
 
-const navHrefs = [
-  ...primaryNavItems.map((item) => item.href),
-  ...secondaryNavItems.map((item) => item.href),
-];
+const railRowClass =
+  "relative flex h-control-sm shrink-0 items-center gap-2.5 rounded-control px-3 text-xs font-medium whitespace-nowrap text-[var(--shell-rail-muted)] no-underline transition-[color,background-color] duration-fast ease-out hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:bg-white/15";
+const railRowActiveClass =
+  "bg-white text-[var(--shell-rail)] hover:bg-white before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-brand";
+const railRowCollapsedClass =
+  "lg:size-control lg:justify-center lg:gap-0 lg:px-0";
 
 export function AppShell({
   title,
@@ -55,7 +91,37 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const activeHref = pickActiveNavHref(pathname, navHrefs);
+  const activeHref = pickActiveNavHref(
+    pathname,
+    navItems.map((item) => item.href),
+  );
+  const activeGroup = navGroups.find((group) =>
+    group.items.some((item) => item.href === activeHref),
+  );
+  const activeNavItemRef = useRef<HTMLAnchorElement | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      SIDEBAR_COLLAPSED_KEY,
+      sidebarCollapsed ? "1" : "0",
+    );
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || window.innerWidth >= 1024) return;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    activeNavItemRef.current?.scrollIntoView({
+      behavior: reduceMotion ? "auto" : "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [activeHref]);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
@@ -63,85 +129,182 @@ export function AppShell({
     router.refresh();
   }
 
-  const renderNavLink = (item: {
-    href: string;
-    label: string;
-    icon: typeof MapIcon;
-  }) => {
-    const Icon = item.icon;
-    const active = item.href === activeHref;
-    return (
-      <Link
-        className={cn(
-          "group flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-[10px] font-bold no-underline transition-[background-color,color,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-white/70 lg:h-10 lg:flex-row lg:justify-start lg:gap-2 lg:px-3 lg:py-0 lg:text-[13px]",
-          active
-            ? "bg-white text-[var(--shell-rail)] shadow-[0_1px_2px_rgb(0_0_0_/_0.12)]"
-            : "text-[var(--shell-rail-muted)] hover:bg-white/10 hover:text-white",
-        )}
-        href={item.href}
-        key={item.href}
-      >
-        <Icon className="size-4 shrink-0" />
-        <span className="truncate">{item.label}</span>
-      </Link>
-    );
-  };
-
   return (
-    <main className="min-h-dvh bg-surface-page text-text-primary">
-      <div className="grid min-h-dvh min-w-0 lg:grid-cols-[15.5rem_minmax(0,1fr)] xl:grid-cols-[16.5rem_minmax(0,1fr)]">
-        <aside className="min-w-0 border-b border-[color:var(--sidebar-border)] bg-[var(--shell-rail)] text-[var(--shell-rail-text)] lg:border-r lg:border-b-0">
-          <div className="flex h-full min-w-0 flex-col gap-3 px-3 py-3 lg:gap-7 lg:p-5">
-            <div className="flex min-w-0 items-center gap-2 lg:gap-3">
+    <div className="min-h-dvh bg-surface-page text-text-primary">
+      <a
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-control focus:border focus:border-border focus:bg-card focus:px-3 focus:py-2 focus:text-xs focus:font-medium focus:text-text-primary focus:shadow-elevated focus:outline-2 focus:outline-offset-2 focus:outline-focus"
+        href={`#${MAIN_CONTENT_ID}`}
+      >
+        본문으로 건너뛰기
+      </a>
+      <div
+        className={cn(
+          "grid min-h-dvh min-w-0",
+          sidebarCollapsed
+            ? "lg:grid-cols-[4rem_minmax(0,1fr)]"
+            : "lg:grid-cols-[16rem_minmax(0,1fr)]",
+        )}
+      >
+        <aside
+          className="min-w-0 border-b border-white/15 bg-[var(--shell-rail)] text-[var(--shell-rail-text)] lg:sticky lg:top-0 lg:h-dvh lg:self-start lg:border-r lg:border-b-0 lg:border-white/15"
+          data-slot="admin-shell-rail"
+        >
+          <div className="flex h-full min-w-0 flex-col">
+            <div
+              className={cn(
+                "flex h-14 shrink-0 items-center justify-between gap-2 border-b border-white/15 px-4",
+                sidebarCollapsed &&
+                  "lg:h-auto lg:flex-col lg:justify-center lg:gap-1 lg:px-0 lg:py-2",
+              )}
+            >
               <Link
-                className="group flex min-w-0 flex-1 items-center gap-2 text-[var(--shell-rail-text)] no-underline lg:gap-3"
+                aria-label="Korea Travel Concierge"
+                className={cn(
+                  "flex min-w-0 items-baseline gap-1.5 rounded-control text-[var(--shell-rail-text)] no-underline hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+                  sidebarCollapsed && "lg:justify-center",
+                )}
                 href="/"
               >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/10 text-white transition-[background-color,border-color] duration-150 group-hover:border-white/30 group-hover:bg-white/15 lg:size-10">
-                  <MapIcon className="size-4 lg:size-[18px]" />
+                <span
+                  className={cn(
+                    "truncate text-sm font-semibold tracking-tight",
+                    sidebarCollapsed && "lg:hidden",
+                  )}
+                >
+                  Korea Travel
                 </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-[13px] font-extrabold tracking-[-0.02em] lg:text-[14px]">
-                    Korea Travel
-                  </span>
-                  <span className="block truncate text-[10px] font-medium tracking-[0.08em] text-[var(--shell-rail-muted)] uppercase">
-                    Concierge
-                  </span>
+                <span
+                  className={cn(
+                    "text-2xs font-medium tracking-tight text-[var(--shell-rail-muted)]",
+                    sidebarCollapsed && "lg:hidden",
+                  )}
+                >
+                  Concierge
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "hidden text-xs font-semibold tracking-tight",
+                    sidebarCollapsed && "lg:inline",
+                  )}
+                >
+                  ktc
                 </span>
               </Link>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                onClick={logout}
-                aria-label="로그아웃"
-                title="로그아웃"
-                className="border border-white/12 text-[var(--shell-rail-muted)] hover:bg-white/10 hover:text-white"
-              >
-                <LogOutIcon className="size-4" />
-              </Button>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button
+                  aria-label="로그아웃"
+                  className="border border-white/15 text-[var(--shell-rail-muted)] hover:bg-white/10 hover:text-white lg:hidden"
+                  size="icon-sm"
+                  title="로그아웃"
+                  type="button"
+                  variant="ghost"
+                  onClick={logout}
+                >
+                  <LogOutIcon aria-hidden="true" />
+                </Button>
+                <button
+                  aria-label={
+                    sidebarCollapsed ? "좌측 메뉴 펼치기" : "좌측 메뉴 접기"
+                  }
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "icon-sm" }),
+                    "hidden border border-white/15 text-[var(--shell-rail-muted)] hover:bg-white/10 hover:text-white lg:inline-flex",
+                  )}
+                  title={sidebarCollapsed ? "좌측 메뉴 펼치기" : "좌측 메뉴 접기"}
+                  type="button"
+                  onClick={() => setSidebarCollapsed((current) => !current)}
+                >
+                  {sidebarCollapsed ? (
+                    <PanelLeftOpenIcon aria-hidden="true" />
+                  ) : (
+                    <PanelLeftCloseIcon aria-hidden="true" />
+                  )}
+                </button>
+              </div>
             </div>
             <nav
-              aria-label="주요 탐색"
-              className="grid grid-cols-4 gap-1 sm:grid-cols-7 lg:flex lg:max-h-[calc(100vh-8rem)] lg:flex-col lg:overflow-y-auto lg:pr-1"
+              aria-label="주요 메뉴"
+              className={cn(
+                "flex min-h-0 max-w-full gap-1 overflow-x-auto px-3 py-2 lg:flex-1 lg:flex-col lg:gap-0.5 lg:overflow-x-hidden lg:overflow-y-auto lg:py-3",
+                sidebarCollapsed && "lg:items-center lg:px-2",
+              )}
             >
-              {primaryNavItems.map(renderNavLink)}
-              <div
-                aria-hidden
-                className="hidden lg:my-1 lg:block lg:border-t lg:border-white/10"
-              />
-              {secondaryNavItems.map(renderNavLink)}
+              {navGroups.map((group) => (
+                <div
+                  className={cn(
+                    "flex shrink-0 items-center gap-1 lg:flex-col lg:items-stretch lg:gap-0.5",
+                    sidebarCollapsed && "lg:items-center",
+                  )}
+                  key={group.label}
+                >
+                  <div
+                    className={cn(
+                      "ml-1 flex shrink-0 items-center gap-2 border-l border-white/20 pl-3 text-2xs font-medium whitespace-nowrap text-[var(--shell-rail-muted)] lg:ml-0 lg:border-l-0 lg:px-3 lg:pt-4 lg:pb-1 lg:after:h-px lg:after:flex-1 lg:after:bg-white/15",
+                      sidebarCollapsed && "lg:hidden",
+                    )}
+                  >
+                    {group.label}
+                  </div>
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = item.href === activeHref;
+                    return (
+                      <Link
+                        aria-current={active ? "page" : undefined}
+                        aria-label={sidebarCollapsed ? item.label : undefined}
+                        className={cn(
+                          railRowClass,
+                          active && railRowActiveClass,
+                          sidebarCollapsed && railRowCollapsedClass,
+                        )}
+                        href={item.href}
+                        key={item.href}
+                        ref={active ? activeNavItemRef : undefined}
+                        title={sidebarCollapsed ? item.label : undefined}
+                      >
+                        <Icon
+                          aria-hidden="true"
+                          className={cn(
+                            "size-4 shrink-0",
+                            active
+                              ? "text-brand"
+                              : "text-[var(--shell-rail-muted)]",
+                          )}
+                        />
+                        <span className={cn(sidebarCollapsed && "lg:hidden")}>
+                          {item.label}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
             </nav>
-            <div className="hidden lg:mt-auto lg:flex lg:flex-col lg:gap-3">
-              <div className="rounded-lg border border-white/10 bg-white/[0.06] p-3">
-                <p className="text-[10px] font-bold tracking-[0.1em] text-[var(--shell-rail-muted)] uppercase">
-                  운영 흐름
-                </p>
-                <p className="mt-1.5 text-[12px] leading-relaxed text-white/85">
-                  수집한 여행 단서를 검수하고 공급 가능한 장소 데이터로 정리합니다.
-                </p>
-              </div>
-              <JobStatusLink variant="menu" />
+            <div
+              className={cn(
+                "hidden shrink-0 border-t border-white/15 p-2 lg:flex lg:flex-col lg:gap-2",
+                sidebarCollapsed && "lg:items-center",
+              )}
+            >
+              {!sidebarCollapsed ? (
+                <JobStatusLink
+                  className="border-white/15 bg-transparent text-[var(--shell-rail-muted)] hover:border-white/25 hover:bg-white/10 hover:text-white"
+                  variant="menu"
+                />
+              ) : null}
+              <Button
+                className={cn(
+                  "h-control-sm w-full justify-start border-0 px-3 text-xs font-medium text-[var(--shell-rail-muted)] hover:bg-white/10 hover:text-white",
+                  sidebarCollapsed && "lg:size-control lg:justify-center lg:px-0",
+                )}
+                type="button"
+                variant="ghost"
+                onClick={logout}
+              >
+                <LogOutIcon aria-hidden="true" />
+                <span className={cn(sidebarCollapsed && "lg:hidden")}>로그아웃</span>
+              </Button>
             </div>
           </div>
         </aside>
@@ -151,37 +314,45 @@ export function AppShell({
             viewportLocked && "ktc-viewport-locked",
           )}
         >
-          <header className="flex shrink-0 flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-surface-muted bg-card/85 px-4 py-4 backdrop-blur-sm lg:px-8 lg:py-5">
-            <div className="min-w-0">
-              <p className="ktc-eyebrow mb-1">운영 작업면</p>
-              <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-                <h1 className="min-w-0 text-[22px] leading-none font-extrabold tracking-[-0.035em] lg:text-[25px]">
+          <header
+            className="shrink-0 border-b border-border bg-card px-4 pt-5 pb-4 lg:px-6"
+            data-slot="admin-shell-header"
+          >
+            <div className="flex min-w-0 flex-col gap-1">
+              <p className="text-2xs font-medium text-text-secondary">
+                {activeGroup?.label ?? "운영"}
+              </p>
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-6">
+                <h1 className="text-xl leading-tight font-bold tracking-tight text-text-primary">
                   {title}
                 </h1>
-                {description ? (
-                  <span className="max-w-prose text-[12px] leading-relaxed text-text-secondary lg:text-[13px]">
-                    {description}
-                  </span>
+                {actions ? (
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    {actions}
+                  </div>
                 ) : null}
               </div>
+              {description ? (
+                <p className="max-w-3xl text-xs text-text-secondary">
+                  {description}
+                </p>
+              ) : null}
             </div>
-            {actions ? (
-              <div className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-2 sm:flex-none sm:justify-end">
-                {actions}
-              </div>
-            ) : null}
           </header>
-          <div
+          <main
             className={cn(
-              "min-h-0 min-w-0 flex-1 px-4 py-5 lg:px-8 lg:py-7",
+              "min-w-0 flex-1 px-4 py-5 focus-visible:outline-0 lg:px-6 lg:py-6",
               viewportLocked && "ktc-viewport-locked-content",
               contentClassName,
             )}
+            data-slot="admin-shell-main"
+            id={MAIN_CONTENT_ID}
+            tabIndex={-1}
           >
             {children}
-          </div>
+          </main>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

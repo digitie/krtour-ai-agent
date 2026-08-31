@@ -227,7 +227,7 @@ export function RecurringEditDialog({
         </section>
 
         {target?.last_scan_error ? (
-          <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+          <p className="rounded-control border border-destructive bg-destructive-tint p-3 text-xs text-destructive">
             최근 오류: {target.last_scan_error}
           </p>
         ) : null}
@@ -346,7 +346,7 @@ export function RecurringEditDialog({
             반복 수집 사용
           </label>
 
-          <label className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm">
+          <label className="flex items-start gap-2 rounded-control border border-warning bg-warning-tint p-3 text-sm">
             <Checkbox
               className="mt-0.5"
               checked={forceRunOnce}

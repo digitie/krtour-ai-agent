@@ -22,7 +22,7 @@ export default function PlaceDetailPage() {
           <ArrowLeftIcon className="size-4" />
           결과로
         </Link>
-        <div className="mt-4 rounded-xl border border-surface-muted bg-card p-5 shadow-[var(--shadow-card)]">
+        <div className="mt-4 rounded-panel border border-border bg-card p-4">
           {Number.isFinite(id) ? (
             <PlaceDetailView placeId={id} onDeleted={() => router.push("/")} />
           ) : (

@@ -272,7 +272,7 @@ const CandidateRow = memo(function CandidateRow({
               type="button"
               disabled={actionsDisabled}
               data-row-action="true"
-              className="w-fit rounded border border-surface-muted px-1.5 py-0.5 text-[11px] font-medium text-text-secondary hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-fit rounded-control border border-border px-1.5 py-0.5 text-2xs font-medium text-text-secondary hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-55"
               onClick={() => onToggleCart(candidate.video_id)}
               title="영상 재처리 선택"
             >

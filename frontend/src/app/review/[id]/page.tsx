@@ -119,7 +119,7 @@ export default function CandidateDetailPage() {
           <ArrowLeftIcon className="size-4" />
           검수 큐로
         </Link>
-        <div className="mt-4 rounded-xl border border-surface-muted bg-card p-5 shadow-[var(--shadow-card)]">
+        <div className="mt-4 rounded-panel border border-border bg-card p-4">
           {id != null ? (
             <CandidateDetailView
               candidateId={id}

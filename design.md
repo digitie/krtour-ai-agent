@@ -2,50 +2,53 @@
 
 ## 방향
 
-`Korea Travel Concierge`는 여행 영감을 보여 주는 소비자 서비스가 아니라, 영상에서 추출한
-장소를 수집·검수·공급하는 운영 콘솔이다. 그래서 화면은 장식적인 대시보드보다 **빠르게
-상태를 읽고, 한 번에 하나의 결정을 내리는 작업면**을 우선한다.
+`Korea Travel Concierge`는 영상에서 추출한 장소를 수집하고 검수하는 운영 콘솔이다. 최신
+`kor-travel-map` admin의 `Rail-Workbench` 구조를 기준으로 삼아, 좌측 전역 메뉴와 상단
+작업 맥락을 고정하고 본문은 한 번에 한 작업을 처리하기 좋은 밀도로 유지한다.
 
-- 스타일: `modern-minimal` 운영 콘솔
-- 분위기: 웜그레이 종이 바탕 위의 깊은 숲색 rail, 낮은 대비의 경계, 필요한 곳만 쓰는 녹색 행동색
-- 구조: 좌측의 전역 이동, 상단의 현재 작업 맥락, 본문의 `작업 단위 → 증거 → 결과` 순서
-- 반응형: 데스크톱은 고정 rail과 넓은 작업면, 모바일은 6개 전역 목적지를 균등한 두 줄 탐색으로
-  바꾸고 모든 행동은 44px 이상의 터치 목표를 유지한다.
+- 스타일: 장식보다 상태 판독과 조작 순서를 우선하는 editorial-utilitarian 운영 화면
+- 구조: 그룹형 전역 Rail → 현재 화면을 설명하는 header band → flat 작업면
+- 반응형: 데스크톱은 16rem Rail, 접힘 상태는 4rem, 모바일은 가로 스크롤 메뉴로 전환
+- 메뉴: `개요`, `수집 파이프라인`, `검수`, `시스템` 그룹과 현재 Concierge의 실제 route만 사용
 
-## 타이포그래피
+## 색상과 표면
 
-- 본문과 UI: `Pretendard`, 시스템 한글 sans-serif fallback
-- 제목: 같은 서체의 굵기·자간·크기 대비로 계층을 만든다. 별도 display font를 추가하지 않아
-  운영 화면의 데이터 밀도와 로딩 성능을 지킨다.
-- 페이지 제목: 24–28px, 700–750
-- 섹션 제목: 13px 대문자형 레이블과 18–20px 본문 제목을 한 묶음으로 쓴다.
-- 표와 지표: `tabular-nums`를 기본으로 해 시계열·카운트가 흔들리지 않게 한다.
+최신 레포의 구조와 컴포넌트 언어를 가져오되, Concierge의 현재 색상톤은 유지한다. 초록색
+브랜드 팔레트로 교체하지 않는다.
 
-## 색과 표면
+- `--brand`: 보라 `#7c3aed`, hover/ink `#6d28d9`, tint `#ede9fe`
+- `--shell-rail`: 짙은 보라 `#2e1065`, Rail 문자는 `--shell-rail-text` 계열
+- `--surface-page`: 웜그레이 캔버스, `--surface-card`: 크림색 작업면
+- `--line`/`--border`: 얇은 경계, `--control-line`: 입력·보조 CTA의 더 선명한 경계
+- 기본 카드와 섹션은 그림자 없이 `border + rounded-panel`을 사용하고, 팝업만 `shadow-modal`을 사용
+- 색상 토큰의 정본은 [`frontend/tokens.css`](frontend/tokens.css)이며 화면에 임의 hex를 추가하지 않는다
 
-- `--surface-page`: 웜그레이 캔버스
-- `--surface-card`: 살짝 크림을 띤 카드 표면
-- `--shell-rail`: 숲색 전역 탐색 영역
-- `--brand`: 명시적 확정·실행·현재 위치에만 쓰는 녹색
-- `--warning`, `--destructive`: 주의와 파괴 행동 전용
-- 그림자는 카드 경계를 보강하는 낮은 단계만 사용한다. gradient와 유리 효과는 사용하지 않는다.
+## 타이포그래피와 밀도
 
-토큰의 정본은 [`frontend/tokens.css`](frontend/tokens.css)다. 컴포넌트는 임의 hex 대신 의미
-토큰을 사용한다.
+- 본문과 UI는 `Pretendard Variable`을 우선하고 시스템 한글 sans-serif를 fallback으로 둔다.
+- 제목은 같은 서체의 굵기와 크기로 계층을 만들며, 한국어 라벨에는 억지로 `uppercase`와
+  tracking을 적용하지 않는다.
+- 기본 본문은 15px, 보조 문자는 13.5px/12px, 페이지 제목은 24px을 기준으로 한다.
+- 표와 수치는 `tabular-nums`를 사용하고, 긴 값은 셀 안에서 줄바꿈·말줄임이 가능해야 한다.
 
 ## 레이아웃과 컴포넌트
 
-- 앱 셸: rail은 제품 정체성과 전역 이동만 담당하고, 현재 화면의 설명·행동은 콘텐츠 header에 둔다.
-- 섹션: 작은 레이블, 제목, 보조 설명/행동으로 시작해 인접 카드보다 더 큰 여백으로 구분한다.
-- 패널: 12px 모서리, 1px 경계, 얕은 그림자. 제목 줄은 콘텐츠와 분리해 스캔을 돕는다.
-- 지표: 카드 전체를 숫자로 채우지 않는다. 작은 아이콘·레이블·큰 tabular 숫자를 수직 정렬한다.
-- 표: 행 높이와 헤더를 줄여 운영 데이터 밀도를 유지하되, 좁은 화면에서는 가로 스크롤 영역을
-  명시적으로 표시하고 핵심 열을 먼저 둔다.
-- 상태: badge는 작은 상태 표현에만 쓴다. 페이지의 주요 상태는 안내 패널과 명확한 행동으로 표현한다.
+- Rail은 제품명, 그룹 라벨, route 링크, 작업 상태, 로그아웃만 담당한다. 페이지 설명과 행동은
+  header band에 둔다.
+- header band는 `border-bottom` hairline으로 본문과 나누며, 섹션 라벨 → 제목/행동 → 설명 순서다.
+- 컨트롤 높이는 `h-control` 36px과 `h-control-sm` 30px 두 종류만 사용한다. 기본 반경은
+  `rounded-control` 6px, 패널 반경은 `rounded-panel` 8px이다.
+- `Card`/`SectionCard`는 제목 밴드와 flat 본문을 제공한다. 카드 안에 또 다른 장식용 카드를
+  중첩하지 않는다.
+- KPI는 아이콘 타일을 반복하지 않고 `StatStrip`의 숫자·라벨·hairline 조합으로 표현한다.
+- 표·선택 목록·지도는 각각 하나의 containment만 가지며, 좁은 화면에서는 가로 스크롤을 명시한다.
+- Dialog/AlertDialog/Popover는 동일한 overlay·motion·panel 레시피를 공유한다.
 
-## 인터랙션과 접근성
+## 상태와 접근성
 
-- hover/focus/disabled/active 상태를 모든 button, navigation, row, field에서 구분한다.
-- 애니메이션은 색·투명도·그림자만 120–180ms로 전환하고 `prefers-reduced-motion`에서는 제거한다.
-- keyboard focus는 숲색 outline/ring으로 유지한다. 아이콘 전용 control에는 이름을 제공한다.
-- 위험한 삭제·확정은 기존의 확인 dialog를 유지하며, 시각 변경이 도메인 흐름을 바꾸지 않는다.
+- active는 색상만이 아니라 `aria-current`와 좌측 2px 보라 mark로 구분한다.
+- 상태는 색상만으로 전달하지 않고 text와 함께 표시하며, 상태 tint는 불투명 semantic token을 쓴다.
+- focus-visible은 즉시 보이는 2px 보라 outline을 사용한다. 아이콘 전용 버튼에는 이름과 title을 제공한다.
+- 로딩 버튼은 라벨 위치와 접근성 이름을 유지한 채 spinner를 겹쳐 표시한다.
+- `prefers-reduced-motion`에서는 전환·scale을 줄이되 진행 중 spinner는 유지한다.
+- 모바일 320px부터 메뉴·표·dialog가 문서 전체 가로 스크롤을 만들지 않아야 한다.

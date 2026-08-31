@@ -1,6 +1,6 @@
 /* 운영 콘솔 공용 토큰의 정본. 각 컴포넌트는 의미 토큰으로만 색·깊이·전환을 참조한다. */
 :root {
-  --ktc-font-sans: var(--font-sans, Pretendard), Pretendard, "Noto Sans KR",
+  --ktc-font-sans: "Pretendard Variable", Pretendard, "Noto Sans KR",
     "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 
   --ktc-surface-page: #f4f5f0;
@@ -11,6 +11,7 @@
   --ktc-brand-tint: #ede9fe;
   --ktc-brand: #7c3aed;
   --ktc-brand-ink: #6d28d9;
+  --ktc-brand-hover: #6d28d9;
   --ktc-brand-foreground: #ffffff;
   --ktc-shell-rail: #2e1065;
   --ktc-shell-rail-soft: #4c1d95;
@@ -24,18 +25,30 @@
   --ktc-text-disabled: #a8b0aa;
   --ktc-icon-default: #69776e;
   --ktc-line: #d5ddd3;
+  --ktc-control-line: #aab5ad;
+  --ktc-focus: #6d28d9;
+  --ktc-overlay: rgb(29 40 35 / 0.5);
   --ktc-info: #276ec5;
+  --ktc-info-tint: #e7f0fc;
   --ktc-warning: #95631a;
+  --ktc-warning-tint: #fbf0d9;
   --ktc-success: #27714e;
+  --ktc-success-tint: #e7f3ec;
   --ktc-destructive: #b23c36;
+  --ktc-destructive-tint: #fde9e7;
 
-  /* kor-travel-geo-ui DESIGN-RULES 3/4: 카드 반경 8px, 그림자는 4~12% 수준으로 아주 약하게. */
+  /* 최신 기준 레포의 control/panel shape 및 density. 색상 토큰은 기존 보라 팔레트를 유지한다. */
   --ktc-radius: 0.5rem;
+  --ktc-radius-control: 0.375rem;
+  --ktc-radius-panel: 0.5rem;
   --ktc-radius-sm: 0.375rem;
+  --ktc-control-height: 2.25rem;
+  --ktc-control-height-sm: 1.875rem;
   --ktc-shadow-card: 0 1px 3px rgb(15 23 42 / 0.04);
   --ktc-shadow-card-hover: 0 2px 4px rgb(15 23 42 / 0.08);
   --ktc-shadow-button: 0 1px 3px rgb(15 23 42 / 0.06);
   --ktc-shadow-modal: 0 8px 24px rgb(15 23 42 / 0.12);
+  --ktc-shadow-elevated: 0 4px 12px rgb(15 23 42 / 0.1);
   --ktc-duration-fast: 120ms;
   --ktc-duration-normal: 180ms;
   --ktc-ease: cubic-bezier(0.2, 0, 0, 1);
@@ -50,6 +63,7 @@
   --ktc-brand-tint: #3b1670;
   --ktc-brand: #a78bfa;
   --ktc-brand-ink: #ddd6fe;
+  --ktc-brand-hover: #ddd6fe;
   --ktc-brand-foreground: #1e1b4b;
   --ktc-text-strong: #e8eee9;
   --ktc-text-primary: #e1e9e3;
@@ -58,8 +72,16 @@
   --ktc-text-disabled: #6f7d74;
   --ktc-icon-default: #abb8b0;
   --ktc-line: #36443a;
+  --ktc-control-line: #66756a;
+  --ktc-focus: #c4b5fd;
+  --ktc-overlay: rgb(5 8 6 / 0.68);
   --ktc-info: #84b8ff;
+  --ktc-info-tint: #1d3048;
   --ktc-warning: #e0b15c;
+  --ktc-warning-tint: #47351a;
   --ktc-success: #83c7a2;
+  --ktc-success-tint: #1d3b2b;
   --ktc-destructive: #ec8881;
+  --ktc-destructive-tint: #482321;
+  --ktc-shadow-elevated: 0 4px 12px rgb(8 12 10 / 0.16);
 }

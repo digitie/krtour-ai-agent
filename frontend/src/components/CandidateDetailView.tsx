@@ -424,7 +424,7 @@ export function CandidateDetailView({
   return (
     <div className="flex flex-col gap-4">
       {detailQuery.data != null && detailQuery.isError ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-destructive bg-destructive-tint p-2 text-xs text-destructive">
           <span role="alert">
             최신 후보 상세를 다시 확인하지 못해 이전 정보를 표시합니다.
           </span>
@@ -464,7 +464,7 @@ export function CandidateDetailView({
       {c.video_is_excluded ? (
         <p
           role="status"
-          className="rounded-lg border border-warning/40 bg-warning/5 p-2 text-xs text-warning"
+          className="rounded-control border border-warning bg-warning-tint p-2 text-xs text-warning"
         >
           출처 영상은 제외 상태입니다. 후보를 복구해도 영상 제외는 그대로
           유지됩니다.
@@ -547,13 +547,13 @@ export function CandidateDetailView({
             <TabsContent value="raw" className="mt-2">
               <pre
                 ref={transcriptRef}
-                className="max-h-64 overflow-y-auto rounded-lg border bg-muted/30 p-2 text-xs whitespace-pre-wrap"
+                className="max-h-64 overflow-y-auto rounded-control border border-border bg-surface-subtle p-2 text-xs whitespace-pre-wrap"
               >
                 {transcriptText}
               </pre>
             </TabsContent>
             <TabsContent value="clean" className="mt-2">
-              <pre className="max-h-64 overflow-y-auto rounded-lg border bg-muted/30 p-2 text-xs whitespace-pre-wrap">
+              <pre className="max-h-64 overflow-y-auto rounded-control border border-border bg-surface-subtle p-2 text-xs whitespace-pre-wrap">
                 {cleanedTranscript}
               </pre>
             </TabsContent>
@@ -573,7 +573,7 @@ export function CandidateDetailView({
         />
         <DetailRow label="출처" value={c.source_kind ?? "-"} />
         {c.source_text ? (
-          <p className="rounded-lg border bg-muted/30 p-2 text-xs whitespace-pre-wrap">
+          <p className="rounded-control border border-border bg-surface-subtle p-2 text-xs whitespace-pre-wrap">
             {c.source_text}
           </p>
         ) : null}
