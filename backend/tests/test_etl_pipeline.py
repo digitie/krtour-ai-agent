@@ -559,7 +559,22 @@ async def test_youtube_client_masks_api_key_on_http_error():
     def handler(request: httpx.Request) -> httpx.Response:
         assert "key" not in request.url.params
         assert request.headers.get("x-goog-api-key") == "secret-key"
-        return httpx.Response(403, json={"error": "quota"}, request=request)
+        return httpx.Response(
+            403,
+            json={
+                "error": {
+                    "status": "PERMISSION_DENIED",
+                    "message": "The request is not allowed for this API key.",
+                    "errors": [
+                        {
+                            "reason": "quotaExceeded",
+                            "message": "The request is not allowed for this API key.",
+                        }
+                    ],
+                }
+            },
+            request=request,
+        )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
         client = YouTubeClient(api_key="secret-key", http_client=http, max_retries=0)
@@ -572,6 +587,9 @@ async def test_youtube_client_masks_api_key_on_http_error():
 
     assert "secret-key" not in message
     assert "status=403" in message
+    assert "reason=quotaExceeded" in message
+    assert "PERMISSION_DENIED" in message
+    assert "The request is not allowed" in message
 
 
 async def test_youtube_client_enforces_quota_budget():

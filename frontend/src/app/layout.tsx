@@ -5,8 +5,11 @@ import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Korea Travel Concierge",
-  description: "유튜브로 찾는 한국 여행지",
+  title: {
+    default: "Travel Concierge Admin UI",
+    template: "%s · Travel Concierge Admin UI",
+  },
+  description: "YouTube 여행 콘텐츠를 관리하는 운영 콘솔",
 };
 
 export default function RootLayout({

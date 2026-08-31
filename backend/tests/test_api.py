@@ -319,6 +319,17 @@ async def test_metrics_endpoint_shape(client):
         assert key in db
 
 
+async def test_prometheus_metrics_endpoint_shape(client):
+    resp = await client.get("/metrics")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/plain")
+    body = resp.text
+    assert "# HELP ktc_http_requests" in body
+    assert "ktc_http_request_duration_seconds" in body
+    assert "ktc_crawl_runs" in body
+    assert "ktc_crawl_run_errors" in body
+
+
 async def test_run_videos_endpoint(client, session):
     from ktc.models import CrawlRun, RunSource, RunState, YoutubeChannel, YoutubeVideo
 

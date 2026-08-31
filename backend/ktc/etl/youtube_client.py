@@ -29,6 +29,17 @@ QUOTA_COST = {
 class YouTubeApiError(RuntimeError):
     """YouTube Data API 호출 실패."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        status_code: int | None = None,
+        reason: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.reason = reason
+
 
 class YouTubeQuotaExceededError(RuntimeError):
     """설정된 YouTube API 쿼터 예산을 초과하려는 경우."""
@@ -67,22 +78,52 @@ class YouTubeClient:
                     continue
                 resp.raise_for_status()
                 self.quota_used += cost
-                return resp.json()
+                try:
+                    payload = resp.json()
+                except ValueError as exc:
+                    raise YouTubeApiError(
+                        f"YouTube API {path} 응답 파싱 실패(status={resp.status_code}; "
+                        f"attempts={attempt + 1}; error={_clip(str(exc))})",
+                        status_code=resp.status_code,
+                    ) from exc
+                if not isinstance(payload, dict):
+                    raise YouTubeApiError(
+                        f"YouTube API {path} 응답 형식 오류(status={resp.status_code}; "
+                        f"attempts={attempt + 1}; payload_type={type(payload).__name__})",
+                        status_code=resp.status_code,
+                    )
+                return payload
             except httpx.HTTPStatusError as exc:
                 last_error = exc
                 status_code = exc.response.status_code
                 if status_code in {429, 500, 502, 503, 504} and attempt < self._max_retries:
                     await asyncio.sleep(0.5 * (2**attempt))
                     continue
+                reason, api_status, detail = _youtube_error_details(exc.response)
+                details = [f"status={status_code}", f"attempts={attempt + 1}"]
+                if reason:
+                    details.append(f"reason={_mask_api_key(reason, self._api_key)}")
+                if api_status:
+                    details.append(f"api_status={_mask_api_key(api_status, self._api_key)}")
+                if detail:
+                    details.append(f"message={_mask_api_key(detail, self._api_key)}")
+                details.append(
+                    f"url={_mask_api_key(str(exc.request.url), self._api_key)}"
+                )
                 raise YouTubeApiError(
-                    f"YouTube API {path} 호출 실패(status={status_code}, url={_mask_api_key(str(exc.request.url), self._api_key)})"
+                    f"YouTube API {path} 호출 실패({'; '.join(details)})",
+                    status_code=status_code,
+                    reason=reason,
                 ) from exc
             except httpx.HTTPError as exc:
                 last_error = exc
                 if attempt < self._max_retries:
                     await asyncio.sleep(0.5 * (2**attempt))
                     continue
-                raise YouTubeApiError(f"YouTube API {path} 네트워크 오류: {exc}") from exc
+                raise YouTubeApiError(
+                    f"YouTube API {path} 네트워크 오류(attempts={attempt + 1}; "
+                    f"error={type(exc).__name__}: {_clip(str(exc))})"
+                ) from exc
 
         raise YouTubeApiError(f"YouTube API {path} 호출 실패: {last_error}")
 
@@ -210,3 +251,46 @@ def _mask_api_key(value: str, api_key: str) -> str:
     if api_key:
         value = value.replace(api_key, "***")
     return value
+
+
+def _clip(value: Any, limit: int = 240) -> str:
+    """외부 provider 오류를 UI/로그에 남길 짧은 한 줄로 정리한다."""
+    return " ".join(str(value).split())[:limit]
+
+
+def _youtube_error_details(
+    response: httpx.Response,
+) -> tuple[str | None, str | None, str | None]:
+    """YouTube 표준 오류 응답에서 진단에 필요한 필드만 추출한다."""
+    try:
+        payload = response.json()
+    except ValueError:
+        return None, None, None
+    if not isinstance(payload, dict):
+        return None, None, None
+
+    error = payload.get("error")
+    if isinstance(error, str):
+        return None, None, _clip(error)
+    if not isinstance(error, dict):
+        return None, None, None
+
+    reason: str | None = None
+    errors = error.get("errors")
+    if isinstance(errors, list):
+        for item in errors:
+            if isinstance(item, dict):
+                reason_value = item.get("reason")
+                if reason_value is not None:
+                    reason = _clip(reason_value)
+                    break
+    api_status_value = error.get("status")
+    api_status = _clip(api_status_value) if api_status_value is not None else None
+    detail_value = error.get("message")
+    detail = _clip(detail_value) if detail_value is not None else None
+    if detail is None and isinstance(errors, list):
+        for item in errors:
+            if isinstance(item, dict) and item.get("message") is not None:
+                detail = _clip(item["message"])
+                break
+    return reason, api_status, detail

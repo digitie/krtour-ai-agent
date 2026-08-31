@@ -215,6 +215,35 @@ async def require_admin_proxy(
     return actor
 
 
+async def require_prometheus_access(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+) -> None:
+    """내부 Prometheus scrape 또는 전용 key를 허용한다."""
+    if not settings.PROMETHEUS_METRICS_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Prometheus 지표가 비활성화되어 있다.",
+        )
+
+    expected_key = settings.PROMETHEUS_METRICS_API_KEY.strip()
+    if expected_key:
+        provided_key = (request.headers.get(API_KEY_HEADER_NAME) or "").strip()
+        if provided_key and hmac.compare_digest(provided_key, expected_key):
+            return
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Prometheus scrape 인증이 필요하다.",
+        )
+
+    if _peer_in_cidrs(request, settings.prometheus_metrics_allowed_cidrs):
+        return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="허용된 Prometheus peer가 아니다.",
+    )
+
+
 def _peer_in_cidrs(request: Request, cidrs: list[str]) -> bool:
     if not cidrs or request.client is None:
         return False

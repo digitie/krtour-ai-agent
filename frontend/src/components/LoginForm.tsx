@@ -59,8 +59,8 @@ export function LoginForm() {
     >
       <div className="flex flex-col gap-1.5">
         <p className="flex items-baseline gap-1.5 text-sm font-semibold tracking-tight">
-          <span>Korea Travel</span>
-          <span className="text-2xs font-medium text-text-tertiary">Concierge</span>
+          <span>Travel Concierge</span>
+          <span className="text-2xs font-medium text-text-tertiary">Admin UI</span>
         </p>
         <h1 className="mt-4 text-xl leading-tight font-bold tracking-tight">관리자 로그인</h1>
       </div>
@@ -104,7 +104,7 @@ export function LoginForm() {
         로그인
       </Button>
       <p className="mt-5 border-t border-border pt-4 text-2xs text-text-tertiary">
-        Korea Travel Concierge · 내부 전용 콘솔
+        Travel Concierge Admin UI · 내부 전용 콘솔
       </p>
     </form>
   );

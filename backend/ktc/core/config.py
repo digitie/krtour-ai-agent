@@ -118,6 +118,14 @@ class Settings(BaseSettings):
     # <=0이면 비활성.
     LOGIN_AUDIT_MAX_ROWS: int = 5000
 
+    # Prometheus scrape endpoint. 기본은 loopback과 Docker 사설 네트워크만 허용하며,
+    # 외부 scrape가 필요하면 전용 키를 함께 설정한다.
+    PROMETHEUS_METRICS_ENABLED: bool = True
+    PROMETHEUS_METRICS_ALLOWED_CIDRS: str = (
+        "127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    )
+    PROMETHEUS_METRICS_API_KEY: str = ""
+
     # --- 2. 데이터베이스 (PostgreSQL + PostGIS, ADR-25) ---
     DATABASE_URL: str = "postgresql+asyncpg://addr:addr@localhost:5432/kor_travel_concierge"
     KTC_TEST_PG_DSN: str = ""
@@ -329,6 +337,15 @@ class Settings(BaseSettings):
         return [
             cidr.strip()
             for cidr in self.KTC_ADMIN_TRUSTED_PROXY_CIDRS.split(",")
+            if cidr.strip()
+        ]
+
+    @property
+    def prometheus_metrics_allowed_cidrs(self) -> list[str]:
+        """Prometheus scrape를 허용할 peer CIDR 목록."""
+        return [
+            cidr.strip()
+            for cidr in self.PROMETHEUS_METRICS_ALLOWED_CIDRS.split(",")
             if cidr.strip()
         ]
 

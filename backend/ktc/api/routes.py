@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field, StrictBool, field_validator, model_valida
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ktc import telemetry
 from ktc.core.config import get_settings
 from ktc.core.database import get_repeatable_read_session, get_session
 from ktc.core.security import (
@@ -1163,6 +1164,7 @@ async def delete_run(
             session, job_id, commit=False
         )
         if transition is None:
+            telemetry.record_run_action(action="delete", result="not_found")
             raise HTTPException(status_code=404, detail="job not found")
         await audit_service.record(
             session,
@@ -1174,14 +1176,17 @@ async def delete_run(
             commit=False,
         )
         await session.commit()
+        telemetry.record_run_action(action="delete", result="success")
     except HTTPException:
         await session.rollback()
         raise
     except ValueError as exc:
         await session.rollback()
+        telemetry.record_run_action(action="delete", result="conflict")
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except Exception:
         await session.rollback()
+        telemetry.record_run_action(action="delete", result="error")
         raise
     return {"job_id": str(job_id), "deleted": True}
 

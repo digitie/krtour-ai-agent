@@ -16,6 +16,9 @@ test.describe('n150 live UI 셸 검증', () => {
     const errors = collectConsoleErrors(page);
     await loginAsAdmin(page, '/');
 
+    await expect(
+      page.getByRole('link', { name: 'Travel Concierge Admin UI' }),
+    ).toBeVisible();
     await expect(page.getByRole('heading', { name: '결과', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: /결과/ }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /수집/ }).first()).toBeVisible();
@@ -310,6 +313,8 @@ async function loginAsAdmin(page: Page, nextPath: string) {
     throw new Error('KTC_E2E_ADMIN_PASSWORD가 필요합니다.');
   }
   await page.goto(`/login?next=${encodeURIComponent(nextPath)}`);
+  await expect(page.getByText('Travel Concierge', { exact: true })).toBeVisible();
+  await expect(page.getByText('Admin UI', { exact: true }).first()).toBeVisible();
   await page.locator('#login-username').fill(e2eAdminUsername);
   await page.locator('#login-password').fill(e2eAdminPassword);
   await page.getByRole('button', { name: '로그인' }).click();

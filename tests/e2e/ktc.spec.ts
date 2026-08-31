@@ -10,7 +10,7 @@ const seedScript = path.join(repoRoot, 'tests/scripts/seed_e2e.py');
 const e2eAdminUsername = process.env.KTC_E2E_ADMIN_USERNAME ?? 'admin';
 const e2eAdminPassword = process.env.KTC_E2E_ADMIN_PASSWORD ?? 'e2e-admin-password';
 
-test.describe('Kor Travel Concierge E2E 검증', () => {
+test.describe('Travel Concierge Admin UI E2E 검증', () => {
   // live 모드(n150)는 로컬 시드/로컬 backend가 없으므로 live-shell.spec.ts만 실행한다.
   test.skip(
     process.env.KTC_LIVE_E2E === '1',
@@ -26,7 +26,10 @@ test.describe('Kor Travel Concierge E2E 검증', () => {
     await expectSeedReady(page);
     await loginAsAdmin(page, '/');
 
-    await expect(page).toHaveTitle(/Korea Travel Concierge/);
+    await expect(page).toHaveTitle(/Travel Concierge Admin UI/);
+    await expect(
+      page.getByRole('link', { name: 'Travel Concierge Admin UI' }),
+    ).toBeVisible();
     // 결과(/) = 확정 장소 목록 + 지도 + 헤더 작업 상태(상세는 /status로 분리, T-097+)
     const placesRegion = page.getByRole('region', { name: '장소 목록' });
     await expect(placesRegion).toBeVisible();
@@ -536,6 +539,29 @@ test.describe('Kor Travel Concierge E2E 검증', () => {
 
     await expect(completedRow).toHaveCount(0);
     await expect(page.getByRole('status')).toContainText('삭제했습니다');
+    expectRelevantConsoleErrors(errors).toEqual([]);
+  });
+
+  test('실패 작업의 상세 오류 원인을 작업 상세에서 확인할 수 있다', async ({
+    page,
+  }) => {
+    const errors = collectConsoleErrors(page);
+    await loginAsAdmin(page, '/jobs');
+
+    const failedRow = page.getByRole('row', { name: /실패 재시작 E2E/ });
+    await expect(failedRow).toBeVisible();
+    await failedRow.getByRole('link', { name: '상세', exact: true }).click();
+    await expect(page).toHaveURL(/\/jobs\/\d+$/);
+    await expect(page.getByRole('heading', { name: '작업 상세', exact: true })).toBeVisible();
+    await expect(page.getByLabel('오류 상세')).toContainText(
+      'reason=quotaExceeded',
+    );
+    await expect(page.getByLabel('오류 상세')).toContainText(
+      'PERMISSION_DENIED',
+    );
+    await expect(page.getByLabel('오류 상세')).toContainText(
+      'The request is not allowed for this API key.',
+    );
     expectRelevantConsoleErrors(errors).toEqual([]);
   });
 
@@ -3046,6 +3072,8 @@ async function expectSeedReady(page: Page) {
 
 async function loginAsAdmin(page: Page, nextPath: string) {
   await page.goto(`/login?next=${encodeURIComponent(nextPath)}`);
+  await expect(page.getByText('Travel Concierge', { exact: true })).toBeVisible();
+  await expect(page.getByText('Admin UI', { exact: true }).first()).toBeVisible();
   await page.locator('#login-username').fill(e2eAdminUsername);
   await page.locator('#login-password').fill(e2eAdminPassword);
   await page.getByRole('button', { name: '로그인' }).click();
@@ -3055,6 +3083,8 @@ async function loginAsAdmin(page: Page, nextPath: string) {
 async function loginAsAdminWithQuery(page: Page, nextPath: string) {
   const expectedURL = new URL(nextPath, 'http://e2e.local');
   await page.goto(`/login?next=${encodeURIComponent(nextPath)}`);
+  await expect(page.getByText('Travel Concierge', { exact: true })).toBeVisible();
+  await expect(page.getByText('Admin UI', { exact: true }).first()).toBeVisible();
   await page.locator('#login-username').fill(e2eAdminUsername);
   await page.locator('#login-password').fill(e2eAdminPassword);
   await page.getByRole('button', { name: '로그인' }).click();

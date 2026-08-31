@@ -71,7 +71,10 @@ export function JobLogView({ status }: { status: JobLogLike }) {
       {status.last_error ? (
         <div className="flex flex-col gap-1 rounded-control border border-destructive bg-destructive-tint p-2">
           <p className="text-xs font-semibold text-destructive">오류 상세</p>
-          <pre className="max-h-48 overflow-auto break-words whitespace-pre-wrap text-xs text-destructive">
+          <pre
+            aria-label="오류 상세"
+            className="max-h-48 overflow-auto break-words whitespace-pre-wrap text-xs text-destructive"
+          >
             {status.last_error}
           </pre>
         </div>
