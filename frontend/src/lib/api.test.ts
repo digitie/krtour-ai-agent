@@ -4,6 +4,7 @@ import {
   deleteCandidate,
   deleteRun,
   executeReviewBulk,
+  formatApiErrorDetail,
   groupThemeItems,
   listReviewSourceFacets,
   listRunQueue,
@@ -70,6 +71,40 @@ describe("groupThemeItems", () => {
       channels: [{ value: "c1", title: "채널", poi_count: 3 }],
       playlists: [{ value: "p1", title: "재생목록", poi_count: 2 }],
       keywords: [{ value: "부산 여행", title: "부산 여행", poi_count: 1 }],
+    });
+  });
+});
+
+describe("formatApiErrorDetail", () => {
+  it("JSON 오류의 detail을 사용자에게 읽기 좋은 메시지로 꺼낸다", () => {
+    expect(
+      formatApiErrorDetail(
+        { detail: "YouTube API quota exceeded", request_id: "opaque" },
+        '{"detail":"YouTube API quota exceeded"}',
+      ),
+    ).toBe("YouTube API quota exceeded");
+  });
+
+  it("구조화할 수 없는 응답은 원문을 사용한다", () => {
+    expect(formatApiErrorDetail("upstream failed", "upstream failed")).toBe(
+      "upstream failed",
+    );
+  });
+
+  it("requestJson의 예외에도 추출한 detail을 사용한다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ detail: "작업 상세 API 오류" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    await expect(listRunQueue()).rejects.toMatchObject({
+      status: 503,
+      message: "API 요청 실패(503): 작업 상세 API 오류",
     });
   });
 });

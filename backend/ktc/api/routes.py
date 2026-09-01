@@ -1146,18 +1146,26 @@ async def stop_run(
     """
     try:
         transition = await crawl_run_service.stop_run(session, job_id)
+        if transition is None:
+            _record_run_action("stop", "not_found")
+            raise HTTPException(status_code=404, detail="job not found")
+        await audit_service.record(
+            session,
+            actor_type="web",
+            action="run.stop",
+            target_type="crawl_run",
+            target_id=str(job_id),
+            payload={"prev_state": transition.previous_state},
+        )
     except ValueError as exc:
+        _record_run_action("stop", "conflict")
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if transition is None:
-        raise HTTPException(status_code=404, detail="job not found")
-    await audit_service.record(
-        session,
-        actor_type="web",
-        action="run.stop",
-        target_type="crawl_run",
-        target_id=str(job_id),
-        payload={"prev_state": transition.previous_state},
-    )
+    except HTTPException:
+        raise
+    except Exception:
+        _record_run_action("stop", "error")
+        raise
+    _record_run_action("stop", "success")
     return {"job_id": str(job_id), "state": transition.accepted_state}
 
 
@@ -1220,19 +1228,27 @@ async def restart_run(
         run, created = await crawl_run_service.create_restart_run(
             session, job_id, source=RunSource.WEB.value
         )
+        if run is None:
+            _record_run_action("restart", "not_found")
+            raise HTTPException(status_code=404, detail="job not found")
+        if created:
+            await audit_service.record(
+                session,
+                actor_type="web",
+                action="run.restart",
+                target_type="crawl_run",
+                target_id=str(run.id),
+                payload={"source_job_id": job_id, "restart_of_run_id": job_id},
+            )
     except ValueError as exc:
+        _record_run_action("restart", "conflict")
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if run is None:
-        raise HTTPException(status_code=404, detail="job not found")
-    if created:
-        await audit_service.record(
-            session,
-            actor_type="web",
-            action="run.restart",
-            target_type="crawl_run",
-            target_id=str(run.id),
-            payload={"source_job_id": job_id, "restart_of_run_id": job_id},
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        _record_run_action("restart", "error")
+        raise
+    _record_run_action("restart", "success")
     return {
         "job_id": str(run.id),
         "state": run.state,

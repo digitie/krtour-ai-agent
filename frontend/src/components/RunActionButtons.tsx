@@ -50,6 +50,8 @@ export function RunActionButtons({
   const router = useRouter();
   const queryClient = useQueryClient();
   const state = run.state.toLowerCase();
+  const actionTargetLabel =
+    run.target_label ?? run.target_id ?? run.source ?? `작업 #${run.job_id}`;
 
   async function invalidateRunQueries(jobIds: string[]) {
     await Promise.all([
@@ -104,8 +106,8 @@ export function RunActionButtons({
   const deleteMutation = useMutation({
     mutationFn: () => deleteRun(run.job_id),
     onSuccess: async (result: DeleteRunResult) => {
-      onFeedback?.({ kind: "deleted", jobId: result.job_id });
       await invalidateRunQueries([run.job_id]);
+      onFeedback?.({ kind: "deleted", jobId: result.job_id });
       onDeleted?.(result.job_id);
     },
     onError: (error) => {
@@ -181,8 +183,8 @@ export function RunActionButtons({
               }
             />
             <ConfirmActionButton
-              title="이 작업을 삭제할까요?"
-              description="종료된 작업 기록과 상태 로그를 삭제합니다. 수집된 영상·장소·원본 미디어는 삭제하지 않습니다. 연결된 재시작·후속 작업이 있으면 먼저 정리해야 합니다. 이 작업은 되돌릴 수 없습니다."
+              title={`"${actionTargetLabel}" 작업을 삭제할까요?`}
+              description={`작업 #${run.job_id}의 종료 기록과 상태 로그를 삭제합니다. 수집된 영상·장소·원본 미디어는 삭제하지 않습니다. 연결된 재시작·후속 작업이 있으면 먼저 정리해야 합니다. 이 작업은 되돌릴 수 없습니다.`}
               confirmLabel="삭제"
               onConfirm={() => deleteMutation.mutate()}
               trigger={

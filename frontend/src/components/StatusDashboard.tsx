@@ -22,6 +22,7 @@ import {
 import { asNum, asRecord, formatBytes, formatDateTimeShort } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataLoadError } from "@/components/JobDetailView";
 import {
   CountList,
   EmptyState,
@@ -97,6 +98,26 @@ export function StatusDashboard() {
   const candidatesByStatus = asRecord(db.candidates_by_status);
   const storage = metrics?.storage;
   const rustfs = rustfsQuery.data;
+  const queueSummary = queueQuery.isPending
+    ? "불러오는 중"
+    : queueQuery.isError
+      ? "확인 필요"
+      : `실행 ${runningCount} · 대기 ${pendingCount} · 확인 필요 ${openAttentionCount}`;
+  const databaseSummary = metricsQuery.isPending
+    ? "불러오는 중"
+    : metricsQuery.isError
+      ? "확인 필요"
+      : `${asNum(db.travel_places).toLocaleString()} 장소 · ${asNum(
+          db.youtube_videos,
+        ).toLocaleString()} 영상`;
+  const storageSummary =
+    metricsQuery.isPending || rustfsQuery.isPending
+      ? "불러오는 중"
+      : metricsQuery.isError || rustfsQuery.isError
+        ? "확인 필요"
+        : `${storage?.health?.ok || rustfs?.health?.ok ? "정상" : "확인 필요"} · ${formatBytes(
+            storage?.total_size_bytes,
+          )}`;
 
   function refresh() {
     void queueQuery.refetch();
@@ -128,13 +149,39 @@ export function StatusDashboard() {
         </Button>
       </div>
 
+      {queueQuery.error || metricsQuery.error || rustfsQuery.error ? (
+        <div aria-label="상태 정보 불러오기 오류" className="grid gap-2">
+          {queueQuery.error ? (
+            <DataLoadError
+              error={queueQuery.error}
+              fallback="작업 대기열을 불러오지 못했습니다."
+              onRetry={() => void queueQuery.refetch()}
+            />
+          ) : null}
+          {metricsQuery.error ? (
+            <DataLoadError
+              error={metricsQuery.error}
+              fallback="운영 지표를 불러오지 못했습니다."
+              onRetry={() => void metricsQuery.refetch()}
+            />
+          ) : null}
+          {rustfsQuery.error ? (
+            <DataLoadError
+              error={rustfsQuery.error}
+              fallback="RustFS 상태를 불러오지 못했습니다."
+              onRetry={() => void rustfsQuery.refetch()}
+            />
+          ) : null}
+        </div>
+      ) : null}
+
       <StatStrip
         ariaLabel="운영 요약 지표"
         className="border-y border-border py-4"
         items={[
           {
             label: "실행 큐",
-            value: `실행 ${runningCount} · 대기 ${pendingCount} · 확인 필요 ${openAttentionCount}`,
+            value: queueSummary,
             tone:
               openAttentionCount > 0
                 ? "warning"
@@ -145,16 +192,12 @@ export function StatusDashboard() {
           },
           {
             label: "DB 장소/영상",
-            value: `${asNum(db.travel_places).toLocaleString()} 장소 · ${asNum(
-              db.youtube_videos,
-            ).toLocaleString()} 영상`,
+            value: databaseSummary,
             tone: "neutral",
           },
           {
             label: "RustFS",
-            value: `${storage?.health?.ok || rustfs?.health?.ok ? "정상" : "확인 필요"} · ${formatBytes(
-              storage?.total_size_bytes,
-            )}`,
+            value: storageSummary,
             tone: storage?.health?.ok || rustfs?.health?.ok ? "success" : "warning",
           },
           {
@@ -173,40 +216,58 @@ export function StatusDashboard() {
       <Section title="데이터">
         <section className="grid gap-4 xl:grid-cols-2">
           <Panel title="저장소 상세">
-            <div className="grid grid-cols-2 gap-2">
-              <Metric label="상태" value={rustfs?.health?.ok ? "정상" : "확인 필요"} />
-              <Metric
-                label="객체 수"
-                value={asNum(storage?.total_objects).toLocaleString()}
-              />
-              <Metric label="총 용량" value={formatBytes(storage?.total_size_bytes)} />
-              <Metric label="보존 정책" value={rustfs?.retention_policy ?? "-"} />
-            </div>
-            {(storage?.assets ?? rustfs?.assets ?? []).length > 0 ? (
-              <div className="mt-3 flex flex-col divide-y divide-border rounded-control border border-border text-sm">
-                {(storage?.assets ?? rustfs?.assets ?? []).map((asset) => (
-                  <div
-                    key={asset.asset_type}
-                    className="flex items-center justify-between gap-3 px-3 py-2"
-                  >
-                    <span className="text-text-secondary">
-                      {assetTypeLabel(asset.asset_type)}
-                    </span>
-                    <span>
-                      {asset.count.toLocaleString()}개 · {formatBytes(asset.size_bytes)}
-                    </span>
+            {metricsQuery.isPending || rustfsQuery.isPending ? (
+              <EmptyState>저장소 정보를 불러오는 중입니다.</EmptyState>
+            ) : metricsQuery.isError || rustfsQuery.isError ? (
+              <p className="text-sm text-text-secondary">
+                위 오류를 해결한 뒤 저장소 상세를 다시 확인하세요.
+              </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <Metric label="상태" value={rustfs?.health?.ok ? "정상" : "확인 필요"} />
+                  <Metric
+                    label="객체 수"
+                    value={asNum(storage?.total_objects).toLocaleString()}
+                  />
+                  <Metric label="총 용량" value={formatBytes(storage?.total_size_bytes)} />
+                  <Metric label="보존 정책" value={rustfs?.retention_policy ?? "-"} />
+                </div>
+                {(storage?.assets ?? rustfs?.assets ?? []).length > 0 ? (
+                  <div className="mt-3 flex flex-col divide-y divide-border rounded-control border border-border text-sm">
+                    {(storage?.assets ?? rustfs?.assets ?? []).map((asset) => (
+                      <div
+                        key={asset.asset_type}
+                        className="flex items-center justify-between gap-3 px-3 py-2"
+                      >
+                        <span className="text-text-secondary">
+                          {assetTypeLabel(asset.asset_type)}
+                        </span>
+                        <span>
+                          {asset.count.toLocaleString()}개 · {formatBytes(asset.size_bytes)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ) : null}
+                ) : null}
+              </>
+            )}
           </Panel>
 
           <Panel title="검수 후보 상태">
-            <CountList
-              counts={candidatesByStatus}
-              empty="검수 후보가 없습니다."
-              labeler={candidateStatusLabel}
-            />
+            {metricsQuery.isPending ? (
+              <EmptyState>운영 지표를 불러오는 중입니다.</EmptyState>
+            ) : metricsQuery.isError ? (
+              <p className="text-sm text-text-secondary">
+                위 운영 지표 오류를 해결한 뒤 검수 후보를 다시 확인하세요.
+              </p>
+            ) : (
+              <CountList
+                counts={candidatesByStatus}
+                empty="검수 후보가 없습니다."
+                labeler={candidateStatusLabel}
+              />
+            )}
           </Panel>
         </section>
       </Section>
@@ -214,7 +275,15 @@ export function StatusDashboard() {
       <Section title="보안">
         <section className="grid gap-4 xl:grid-cols-2">
           <Panel title="로그인 기록">
-            {(loginEventsQuery.data ?? []).length > 0 ? (
+            {loginEventsQuery.isPending ? (
+              <EmptyState>로그인 기록을 불러오는 중입니다.</EmptyState>
+            ) : loginEventsQuery.isError ? (
+              <DataLoadError
+                error={loginEventsQuery.error}
+                fallback="로그인 기록을 불러오지 못했습니다."
+                onRetry={() => void loginEventsQuery.refetch()}
+              />
+            ) : (loginEventsQuery.data ?? []).length > 0 ? (
               <div className="max-h-80 overflow-y-auto rounded-control border border-border text-sm">
                 {(loginEventsQuery.data ?? []).map((event) => (
                   <div
@@ -249,7 +318,15 @@ export function StatusDashboard() {
           </Panel>
 
           <Panel title="최근 감사 로그">
-            {(auditQuery.data ?? []).length > 0 ? (
+            {auditQuery.isPending ? (
+              <EmptyState>감사 로그를 불러오는 중입니다.</EmptyState>
+            ) : auditQuery.isError ? (
+              <DataLoadError
+                error={auditQuery.error}
+                fallback="감사 로그를 불러오지 못했습니다."
+                onRetry={() => void auditQuery.refetch()}
+              />
+            ) : (auditQuery.data ?? []).length > 0 ? (
               <div className="flex max-h-80 flex-col divide-y divide-border overflow-y-auto rounded-control border border-border text-sm">
                 {(auditQuery.data ?? []).map((log) => (
                   <div key={log.id} className="px-3 py-2">

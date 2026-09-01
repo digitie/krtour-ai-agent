@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 const liveEnabled = process.env.KTC_LIVE_E2E === '1';
 const e2eAdminUsername = process.env.KTC_E2E_ADMIN_USERNAME ?? 'admin';
 const e2eAdminPassword = process.env.KTC_E2E_ADMIN_PASSWORD ?? '';
+const liveBackendURL = process.env.E2E_API_BASE_URL ?? 'http://127.0.0.1:12601';
 
 test.describe('n150 live UI 셸 검증', () => {
   test.skip(!liveEnabled, 'KTC_LIVE_E2E=1 일 때만 n150 live UI를 검증한다.');
@@ -10,6 +11,14 @@ test.describe('n150 live UI 셸 검증', () => {
   // 기본 30초로는 검수 큐 시나리오가 빠듯하다.
   test.beforeEach(() => {
     test.setTimeout(60_000);
+  });
+
+  test('Prometheus scrape endpoint가 운영 지표를 반환한다', async ({ request }) => {
+    const response = await request.get(`${liveBackendURL}/metrics`);
+    expect(response.status()).toBe(200);
+    const body = await response.text();
+    expect(body).toContain('# HELP ktc_http_requests');
+    expect(body).toContain('ktc_crawl_run_metrics_refresh_success');
   });
 
   test('메뉴, 상단 작업 상태, 상태 페이지, 설정 페이지가 동작한다', async ({ page }) => {
@@ -395,8 +404,7 @@ function expectRelevantConsoleErrors(errors: string[]) {
 function isRelevantConsoleError(message: string) {
   if (
     message.includes('favicon') ||
-    message.includes('ResizeObserver loop completed') ||
-    message.includes('Failed to load resource: the server responded with a status of 401')
+    message.includes('ResizeObserver loop completed')
   ) {
     return false;
   }
