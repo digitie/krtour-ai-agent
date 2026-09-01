@@ -526,7 +526,9 @@ test.describe('Travel Concierge Admin UI E2E 검증', () => {
     await completedRow.getByRole('button', { name: '삭제', exact: true }).click();
 
     const dialog = page.getByRole('alertdialog');
-    await expect(dialog.getByRole('heading', { name: '이 작업을 삭제할까요?' })).toBeVisible();
+    await expect(
+      dialog.getByRole('heading', { name: /"제주 여행" 작업을 삭제할까요\?/ }),
+    ).toBeVisible();
     await expect(dialog).toContainText('원본 미디어는 삭제하지 않습니다');
 
     const deleteResponse = page.waitForResponse(

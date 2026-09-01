@@ -79,6 +79,7 @@ test.describe('n150 live UI 셸 검증', () => {
         body: JSON.stringify({ detail: 'KTC live E2E POI 오류 상세' }),
       });
     });
+    let deletedByUI = false;
     try {
       await page.goto(`/jobs/${disposableJobId}`);
       await expect(page.getByRole('heading', { name: '작업 상세', exact: true })).toBeVisible();
@@ -110,11 +111,14 @@ test.describe('n150 live UI 셸 검증', () => {
       await expect(page.getByRole('status')).toContainText(
         `작업 #${disposableJobId}를 삭제했습니다.`,
       );
+      deletedByUI = true;
     } finally {
       await page.unroute(`**${runPath}`);
       await page.unroute(`**${runPath}/video-stats`);
       await page.unroute(`**${runPath}/places`);
-      await deleteDisposableRun(page, disposableJobId);
+      if (!deletedByUI) {
+        await deleteDisposableRun(page, disposableJobId);
+      }
     }
 
     // /status는 시스템 메트릭·저장소·감사 로그 전용으로 축소됐다.
@@ -390,10 +394,19 @@ function collectConsoleErrors(page: Page) {
   const errors: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') {
-      errors.push(message.text());
+      // Chromium은 실패한 HTTP 응답을 URL 없이 같은 문구로 출력한다. 응답
+      // 이벤트에서 URL·상태를 별도로 수집해 예상한 mock과 실제 오류를 구분한다.
+      if (!message.text().startsWith('Failed to load resource:')) {
+        errors.push(message.text());
+      }
     }
   });
   page.on('pageerror', (error) => errors.push(error.message));
+  page.on('response', (response) => {
+    if (response.status() >= 400) {
+      errors.push(`HTTP ${response.status()} ${response.url()}`);
+    }
+  });
   return errors;
 }
 
@@ -404,19 +417,14 @@ function expectRelevantConsoleErrors(errors: string[]) {
 function isRelevantConsoleError(message: string) {
   if (
     message.includes('favicon') ||
-    message.includes('ResizeObserver loop completed')
+    message.includes('ResizeObserver loop completed') ||
+    /^HTTP 404 .*\/favicon(?:\.ico)?(?:\?|$)/.test(message) ||
+    /^HTTP 503 .*\/api\/v1\/runs\/\d+\/(?:video-stats|places)(?:\?|$)/.test(message)
   ) {
     return false;
   }
 
-  return [
-    'Hydration failed',
-    'ReferenceError',
-    'SyntaxError',
-    'TypeError',
-    'Unhandled',
-    'Internal Server Error',
-  ].some((pattern) => message.includes(pattern));
+  return true;
 }
 
 async function createDisposableTerminalRun(page: Page): Promise<string> {
@@ -452,6 +460,6 @@ async function createDisposableTerminalRun(page: Page): Promise<string> {
 }
 
 async function deleteDisposableRun(page: Page, jobId: string) {
-  const response = await page.request.delete(`/api/v1/runs/${jobId}`);
-  expect([200, 404, 409]).toContain(response.status());
+  const response = await page.context().request.delete(`/api/v1/runs/${jobId}`);
+  expect([200, 404]).toContain(response.status());
 }

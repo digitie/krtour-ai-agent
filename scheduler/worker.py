@@ -1382,6 +1382,9 @@ async def _hold_crawl_run_execution_lock(
                 )
             )
         )
+        # session advisory lock은 transaction 종료 후에도 유지된다. lock 획득
+        # 직후 commit해 장시간 ETL 동안 idle transaction으로 남지 않게 한다.
+        await lock_session.commit()
         try:
             yield
         finally:

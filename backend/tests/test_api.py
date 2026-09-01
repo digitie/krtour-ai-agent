@@ -613,6 +613,30 @@ async def test_stop_pending_and_running_response_contract(client, session):
     assert missing.status_code == 404
 
 
+async def test_stop_and_audit_share_one_transaction(client, session_factory, monkeypatch):
+    """stop 상태 변경은 audit commit 실패 시 함께 rollback한다."""
+    from ktc.models import CrawlRun, RunState
+    from ktc.services import crawl_run_service
+
+    async with session_factory() as seed_session:
+        run = await crawl_run_service.create_run(
+            seed_session, job_type="harvest", source="web"
+        )
+        job_id = run.id
+
+    async def fail_audit(*_args, **_kwargs):
+        raise RuntimeError("audit unavailable")
+
+    monkeypatch.setattr(audit_service, "record", fail_audit)
+    with pytest.raises(RuntimeError, match="audit unavailable"):
+        await client.post(f"/api/v1/runs/{job_id}/stop")
+
+    async with session_factory() as verify_session:
+        persisted = await verify_session.get(CrawlRun, job_id)
+        assert persisted.state == RunState.PENDING
+        assert persisted.cancel_requested is False
+
+
 async def test_restart_rejects_non_terminal_run(client):
     """T-162: terminal(done/failed/cancelled) 상태만 재시작할 수 있다."""
     resp = await client.post("/api/v1/harvest", json={"query": "부산 카페", "max_videos": 3})
@@ -661,6 +685,38 @@ async def test_restart_run_lineage_attention_and_idempotency(client, session):
 
     missing = await client.post("/api/v1/runs/999999/restart")
     assert missing.status_code == 404
+
+
+async def test_restart_and_audit_share_one_transaction(client, session_factory, monkeypatch):
+    """restart child와 원본 attention 변경은 audit commit 실패 시 함께 rollback한다."""
+    from sqlalchemy import func, select
+
+    from ktc.models import CrawlRun, RunAttention
+    from ktc.services import crawl_run_service
+
+    async with session_factory() as seed_session:
+        origin = await crawl_run_service.create_run(
+            seed_session, job_type="harvest", source="web"
+        )
+        await crawl_run_service.mark_failed(seed_session, origin.id, error="seed failure")
+        origin_id = origin.id
+
+    async def fail_audit(*_args, **_kwargs):
+        raise RuntimeError("audit unavailable")
+
+    monkeypatch.setattr(audit_service, "record", fail_audit)
+    with pytest.raises(RuntimeError, match="audit unavailable"):
+        await client.post(f"/api/v1/runs/{origin_id}/restart")
+
+    async with session_factory() as verify_session:
+        persisted = await verify_session.get(CrawlRun, origin_id)
+        child_count = await verify_session.scalar(
+            select(func.count())
+            .select_from(CrawlRun)
+            .where(CrawlRun.restart_of_run_id == origin_id)
+        )
+        assert persisted.attention == RunAttention.OPEN
+        assert child_count == 0
 
 
 async def test_lane_mapping_across_enqueue_points(client, session_factory):

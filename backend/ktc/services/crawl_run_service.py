@@ -821,6 +821,7 @@ async def create_restart_run(
     origin_id: int,
     *,
     source: str,
+    commit: bool = True,
 ) -> tuple[CrawlRun | None, bool]:
     """terminal 상태 원본 run을 같은 입력으로 재시작한다(T-162, G6).
 
@@ -833,6 +834,9 @@ async def create_restart_run(
     "원본당 active 재시작 1"은 앱 로직으로 보장한다(단일 실행자 + 이 함수가 유일한
     재시작 생성 경로 + 원본 행 FOR UPDATE 직렬화). DB partial-unique index는 두지
     않는다 — 위 보장으로 충분하고, 인덱스는 과잉이다.
+
+    `commit=False`이면 호출자가 child 생성·원본 attention·audit 기록을 한 transaction으로
+    묶을 수 있다.
     """
     # 멱등성 판정을 직렬화하기 위해 원본 행을 잠근다(identity map 무시하고 재조회).
     origin = await session.get(CrawlRun, origin_id, with_for_update=True)
@@ -854,7 +858,8 @@ async def create_restart_run(
     ).scalars().first()
     if existing is not None:
         # 잠금만 잡고 변경 없이 반환한다(조용한 멱등).
-        await session.commit()
+        if commit:
+            await session.commit()
         return existing, False
 
     payload = json.loads(origin.payload_json) if origin.payload_json else None
@@ -873,8 +878,9 @@ async def create_restart_run(
     )
     if origin.attention in (RunAttention.OPEN, RunAttention.ACKNOWLEDGED):
         origin.attention = RunAttention.SUPERSEDED
-    await session.commit()
-    await session.refresh(run)
+    if commit:
+        await session.commit()
+        await session.refresh(run)
     return run, True
 
 
@@ -896,12 +902,15 @@ async def acknowledge_attention(session: AsyncSession, run_id: int) -> CrawlRun 
     return run
 
 
-async def stop_run(session: AsyncSession, run_id: int) -> StopRunTransition | None:
+async def stop_run(
+    session: AsyncSession, run_id: int, *, commit: bool = True
+) -> StopRunTransition | None:
     """작업 상태를 잠근 뒤 대기 취소 또는 실행 중지 요청을 원자적으로 적용한다.
 
     pending claim과 같은 행 잠금을 사용한다. 중지가 먼저 잠그면 claim은 해당 행을
     건너뛰고, claim이 먼저 완료되면 최신 running 상태에 `cancel_requested`를 건다.
-    terminal 작업이면 `ValueError`, 대상이 없으면 `None`을 반환한다.
+    terminal 작업이면 `ValueError`, 대상이 없으면 `None`을 반환한다. `commit=False`이면
+    호출자가 상태 변경과 audit 기록을 한 transaction으로 묶는다.
     """
     run = (
         await session.execute(
@@ -936,7 +945,8 @@ async def stop_run(session: AsyncSession, run_id: int) -> StopRunTransition | No
         previous_state=previous_state,
         accepted_state=run.state,
     )
-    await session.commit()
+    if commit:
+        await session.commit()
     return transition
 
 

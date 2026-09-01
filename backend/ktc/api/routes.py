@@ -1165,7 +1165,7 @@ async def stop_run(
     (실행자가 곧 `cancelled`로 마감). 이미 종료된 작업은 400.
     """
     try:
-        transition = await crawl_run_service.stop_run(session, job_id)
+        transition = await crawl_run_service.stop_run(session, job_id, commit=False)
         if transition is None:
             _record_run_action("stop", "not_found")
             raise HTTPException(status_code=404, detail="job not found")
@@ -1178,11 +1178,14 @@ async def stop_run(
             payload={"prev_state": transition.previous_state},
         )
     except ValueError as exc:
+        await session.rollback()
         _record_run_action("stop", "conflict")
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except HTTPException:
+        await session.rollback()
         raise
     except Exception:
+        await session.rollback()
         _record_run_action("stop", "error")
         raise
     _record_run_action("stop", "success")
@@ -1246,7 +1249,7 @@ async def restart_run(
     """
     try:
         run, created = await crawl_run_service.create_restart_run(
-            session, job_id, source=RunSource.WEB.value
+            session, job_id, source=RunSource.WEB.value, commit=False
         )
         if run is None:
             _record_run_action("restart", "not_found")
@@ -1261,11 +1264,14 @@ async def restart_run(
                 payload={"source_job_id": job_id, "restart_of_run_id": job_id},
             )
     except ValueError as exc:
+        await session.rollback()
         _record_run_action("restart", "conflict")
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except HTTPException:
+        await session.rollback()
         raise
     except Exception:
+        await session.rollback()
         _record_run_action("restart", "error")
         raise
     _record_run_action("restart", "success")

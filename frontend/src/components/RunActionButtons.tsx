@@ -53,16 +53,21 @@ export function RunActionButtons({
   const actionTargetLabel =
     run.target_label ?? run.target_id ?? run.source ?? `작업 #${run.job_id}`;
 
-  async function invalidateRunQueries(jobIds: string[]) {
+  async function invalidateRunQueries(
+    jobIds: string[],
+    { includeDetail = true }: { includeDetail?: boolean } = {},
+  ) {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["runs"] }),
       queryClient.invalidateQueries({ queryKey: RUN_QUEUE_QUERY_KEY }),
-      ...jobIds.flatMap((jobId) => [
-        queryClient.invalidateQueries({ queryKey: ["run", jobId] }),
-        queryClient.invalidateQueries({ queryKey: ["run-video-stats", jobId] }),
-        queryClient.invalidateQueries({ queryKey: ["job-videos", jobId] }),
-        queryClient.invalidateQueries({ queryKey: ["job-places", jobId] }),
-      ]),
+      ...(includeDetail
+        ? jobIds.flatMap((jobId) => [
+            queryClient.invalidateQueries({ queryKey: ["run", jobId] }),
+            queryClient.invalidateQueries({ queryKey: ["run-video-stats", jobId] }),
+            queryClient.invalidateQueries({ queryKey: ["job-videos", jobId] }),
+            queryClient.invalidateQueries({ queryKey: ["job-places", jobId] }),
+          ])
+        : []),
     ]);
   }
 
@@ -106,7 +111,10 @@ export function RunActionButtons({
   const deleteMutation = useMutation({
     mutationFn: () => deleteRun(run.job_id),
     onSuccess: async (result: DeleteRunResult) => {
-      await invalidateRunQueries([run.job_id]);
+      // 상세 화면은 삭제 직후 이력 페이지로 이동한다. 삭제된 run 상세 query를
+      // 여기서 다시 fetch하면 이동 전 404가 의도치 않은 console 오류가 되므로
+      // 목록/대기열만 갱신한다.
+      await invalidateRunQueries([run.job_id], { includeDetail: false });
       onFeedback?.({ kind: "deleted", jobId: result.job_id });
       onDeleted?.(result.job_id);
     },
