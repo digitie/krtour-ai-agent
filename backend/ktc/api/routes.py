@@ -53,6 +53,7 @@ from ktc.models import (
     ReviewBulkAction,
     RunAttention,
     RunSource,
+    RunState,
     SourceTarget,
     TravelPlace,
     VideoPlaceMapping,
@@ -712,14 +713,26 @@ async def start_transcript(
     job_type crawl_run을 만든다. 자막 생성 전 사용자 확인 단계를 보장한다.
     요청 body에 `video_ids`를 주면 수집 결과의 부분집합만 처리한다(예: 품질 시험).
     """
-    source = await crawl_run_service.get_run(session, job_id)
+    source = await crawl_run_service.get_run_for_update(session, job_id)
     if source is None:
         raise HTTPException(status_code=404, detail="job not found")
     if source.job_type != "harvest":
         raise HTTPException(
             status_code=400, detail="transcript는 harvest 작업에만 생성할 수 있다"
         )
-    result = json.loads(source.result_json) if source.result_json else {}
+    if source.state != RunState.DONE:
+        raise HTTPException(
+            status_code=400,
+            detail="완료된 harvest 작업에서만 transcript를 생성할 수 있다",
+        )
+    try:
+        result = (
+            json.loads(source.result_json) if source.result_json else {}
+        )
+    except (TypeError, ValueError):
+        result = {}
+    if not isinstance(result, dict):
+        result = {}
     collected = result.get("video_ids") or []
     if not collected:
         raise HTTPException(
@@ -734,7 +747,14 @@ async def start_transcript(
             )
     else:
         video_ids = collected
-    source_payload = json.loads(source.payload_json) if source.payload_json else {}
+    try:
+        source_payload = (
+            json.loads(source.payload_json) if source.payload_json else {}
+        )
+    except (TypeError, ValueError):
+        source_payload = {}
+    if not isinstance(source_payload, dict):
+        source_payload = {}
     transcript_payload: dict[str, Any] = {
         "video_ids": video_ids,
         "source_job_id": job_id,

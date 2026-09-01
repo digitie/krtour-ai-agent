@@ -51,8 +51,8 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="kor-travel-concierge API",
-        description="FastAPI Backend for YouTube Travel Curation with Gemini",
+        title="Travel Concierge Admin UI API",
+        description="Travel Concierge Admin UI 운영 API",
         version="0.1.0",
         lifespan=lifespan,
     )
@@ -76,16 +76,24 @@ def create_app() -> FastAPI:
             return response
         finally:
             if settings.PROMETHEUS_METRICS_ENABLED:
-                telemetry.record_http_request(
-                    method=request.method,
-                    path=telemetry.request_path(request),
-                    status_code=status_code,
-                    duration_seconds=time.perf_counter() - started,
-                )
+                try:
+                    telemetry.record_http_request(
+                        method=request.method,
+                        path=telemetry.request_path(request),
+                        status_code=status_code,
+                        duration_seconds=time.perf_counter() - started,
+                    )
+                except Exception:  # pragma: no cover - prometheus client 장애 격리
+                    logging.getLogger("ktc.telemetry").exception(
+                        "Prometheus HTTP 지표 기록에 실패했다"
+                    )
 
     @app.get("/")
     def read_root() -> dict[str, str]:
-        return {"message": "Welcome to kor-travel-concierge API", "status": "running"}
+        return {
+            "message": "Welcome to Travel Concierge Admin UI API",
+            "status": "running",
+        }
 
     @app.get("/health")
     def health() -> dict[str, str]:

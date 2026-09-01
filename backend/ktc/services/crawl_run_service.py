@@ -418,6 +418,14 @@ async def get_run(session: AsyncSession, run_id: int) -> CrawlRun | None:
     return await session.get(CrawlRun, run_id)
 
 
+async def get_run_for_update(
+    session: AsyncSession, run_id: int
+) -> CrawlRun | None:
+    """후속 작업 생성처럼 parent와 child를 같은 transaction에서 다룰 때 parent를 잠근다.
+    """
+    return await session.get(CrawlRun, run_id, with_for_update=True)
+
+
 async def delete_run(
     session: AsyncSession, run_id: int, *, commit: bool = True
 ) -> DeleteRunTransition | None:
@@ -1012,8 +1020,27 @@ async def requeue_stale(
     )
     result = await session.execute(stmt)
     stale_runs = list(result.scalars().all())
+    reclaimed_count = 0
+    is_postgres = (
+        getattr(getattr(session.bind, "dialect", None), "name", None)
+        == "postgresql"
+    )
 
     for run in stale_runs:
+        # 실행 handler는 같은 이름의 session advisory lock을 보유한다. lock을
+        # 획득하지 못한 stale row는 아직 이전 worker가 외부 API/side effect를
+        # 수행 중일 수 있으므로 재큐잉하지 않는다. SQLite 테스트에서는 해당
+        # PostgreSQL 함수가 없으므로 기존 stale 전이만 검증한다.
+        if is_postgres:
+            lock_acquired = await session.scalar(
+                select(
+                    func.pg_try_advisory_xact_lock(
+                        func.hashtextextended(crawl_run_execution_lock_name(run.id), 0)
+                    )
+                )
+            )
+            if not lock_acquired:
+                continue
         if run.retry_count >= max_retries:
             run.state = RunState.FAILED
             run.finished_at = utcnow()
@@ -1036,7 +1063,8 @@ async def requeue_stale(
                 level="warning",
                 touch_heartbeat=False,
             )
+        reclaimed_count += 1
 
-    if stale_runs:
+    if reclaimed_count:
         await session.commit()
-    return len(stale_runs)
+    return reclaimed_count
