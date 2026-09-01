@@ -17,9 +17,19 @@
   loopback/Docker 사설 CIDR로 제한하고 필요하면 별도 `X-API-Key`를 요구한다.
 - **브랜드명**: 브라우저 title, 로그인 화면, 좌측 메뉴 상단과 접근성 이름을
   `Travel Concierge Admin UI`로 통일했다. 기존 운영 콘솔의 보라색 색상톤은 유지한다.
-- **검증**: frontend Vitest 333건, lint, type-check, production build와 YouTube/telemetry
-  targeted backend 테스트를 통과했다. PostGIS 통합·n150 Prometheus scrape·live E2E는
-  배포 단계에서 확인한다.
+- **검증**: backend 전체 테스트 `300 passed, 529 skipped`, frontend Vitest `336 passed`,
+  lint·type-check·production build를 통과했다. n150 운영에서 `20260901_0029` migration,
+  API/UI/scheduler 재생성, UI 인증 hash 길이 87, API health 200, 공개 로그인
+  `200 + Set-Cookie`, 잘못된 비밀번호 `401`을 확인했다. Prometheus 컨테이너의 `promtool`
+  설정 검증, concierge API target `up`, refresh query value `1`, 최신 UI의 Linux live
+  Playwright **5 passed**를 확인했다. 삭제·상세 오류·의도된 오류 mock과 strict HTTP 오류
+  수집도 live 시나리오에 포함한다.
+- **리뷰·후속 보강**: 두 전문 리뷰어의 백엔드/프론트엔드 적대적 리뷰에서 확인된 확정 회귀를
+  반영했다. stop/restart 상태 변경과 audit 기록을 같은 transaction으로 묶고, 상세 삭제 후
+  삭제된 run을 다시 조회하지 않도록 했다. 로컬 삭제 assertion을 대상명 기반으로 갱신하고,
+  live E2E는 favicon·ResizeObserver 및 명시된 오류 mock만 허용하며 그 밖의 HTTP 4xx/5xx와
+  JavaScript 오류는 실패하도록 강화했다. API worker는 최신 execution lock 코드와 함께
+  재생성했다.
 
 ## 2026-08-31: 최신 kor-travel-map admin UI 구조·컴포넌트 정렬
 
