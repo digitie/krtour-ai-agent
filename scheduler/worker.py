@@ -2,7 +2,8 @@
 
 Web REST, MCP, 정기 크롤이 공유하는 `crawl_runs` 테이블에서 `pending` 작업을
 단일 claim 방식으로 가져와 async ETL 파이프라인을 실행한다(ADR-13, T-010).
-Celery / Redis / RabbitMQ / PostgreSQL Advisory Lock은 초기 범위에서 제외한다.
+Celery / Redis / RabbitMQ는 사용하지 않고 PostgreSQL Advisory Lock은 작업 실행 lease와
+삭제 guard에만 사용한다.
 
 구조:
     - `run_once`: 테스트 가능한 1회 tick. stale 재투입 -> pending claim -> 실행.
@@ -17,6 +18,7 @@ import json
 import logging
 import time
 from collections.abc import Awaitable, Callable, Mapping
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
@@ -1354,6 +1356,7 @@ async def _heartbeat_and_cancel_watch(
                 )
                 if owned_run is None:
                     await session.rollback()
+                    on_cancel()
                     return
                 owned_run.heartbeat_at = utcnow()
                 cancel_requested = bool(owned_run.cancel_requested)
@@ -1365,7 +1368,60 @@ async def _heartbeat_and_cancel_watch(
             logger.warning("crawl_run heartbeat 갱신 실패(run_id=%s): %s", run_id, exc)
 
 
+@asynccontextmanager
+async def _hold_crawl_run_execution_lock(
+    session_factory: async_sessionmaker[AsyncSession], run_id: int
+):
+    """작업 handler가 끝날 때까지 삭제와 공유하는 session advisory lock을 보유한다."""
+    lock_name = crawl_run_service.crawl_run_execution_lock_name(run_id)
+    async with session_factory() as lock_session:
+        await lock_session.execute(
+            select(
+                func.pg_advisory_lock(
+                    func.hashtextextended(lock_name, 0)
+                )
+            )
+        )
+        # session advisory lock은 transaction 종료 후에도 유지된다. lock 획득
+        # 직후 commit해 장시간 ETL 동안 idle transaction으로 남지 않게 한다.
+        await lock_session.commit()
+        try:
+            yield
+        finally:
+            try:
+                await lock_session.execute(
+                    select(
+                        func.pg_advisory_unlock(
+                            func.hashtextextended(lock_name, 0)
+                        )
+                    )
+                )
+                await lock_session.commit()
+            except Exception:  # pragma: no cover - connection failure releases lock
+                await lock_session.rollback()
+                logger.exception(
+                    "crawl_run execution advisory lock 해제 실패(run_id=%s)", run_id
+                )
+
+
 async def execute_run(
+    session_factory: async_sessionmaker[AsyncSession],
+    run: CrawlRun,
+    *,
+    handlers: Mapping[str, JobHandler] | None = None,
+    heartbeat_interval_seconds: float | None = None,
+) -> None:
+    """작업 실행과 삭제의 경합을 lease로 보호한다."""
+    async with _hold_crawl_run_execution_lock(session_factory, run.id):
+        await _execute_run_locked(
+            session_factory,
+            run,
+            handlers=handlers,
+            heartbeat_interval_seconds=heartbeat_interval_seconds,
+        )
+
+
+async def _execute_run_locked(
     session_factory: async_sessionmaker[AsyncSession],
     run: CrawlRun,
     *,

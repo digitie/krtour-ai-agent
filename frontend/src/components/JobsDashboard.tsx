@@ -45,6 +45,7 @@ import {
   RunActionButtons,
   type RunActionFeedback,
 } from "@/components/RunActionButtons";
+import { DataLoadError } from "@/components/JobDetailView";
 import { EmptyState, Panel } from "@/components/panels";
 
 function targetLabel(run: CrawlRunSummary): string {
@@ -59,10 +60,15 @@ export function JobsDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const attentionOnly = searchParams.get("attention") === "open";
+  const deletedJobId = searchParams.get("deleted");
   const [stateFilter, setStateFilter] = useState<string>(JOB_HISTORY_STATE_ALL);
   const [typeFilter, setTypeFilter] = useState<string>(JOB_HISTORY_TYPE_ALL);
   const [runActionFeedback, setRunActionFeedback] =
     useState<RunActionFeedback | null>(null);
+  const routeFeedback: RunActionFeedback | null = deletedJobId
+    ? { kind: "deleted", jobId: deletedJobId }
+    : null;
+  const feedback = runActionFeedback ?? routeFeedback;
 
   const queueQuery = useQuery({
     queryKey: RUN_QUEUE_QUERY_KEY,
@@ -124,30 +130,36 @@ export function JobsDashboard() {
         </Button>
       </div>
 
-      {runActionFeedback ? (
+      {feedback ? (
         <div
-          role={runActionFeedback.kind === "error" ? "alert" : "status"}
+          role={feedback.kind === "error" ? "alert" : "status"}
           className={`rounded-control border px-3 py-2 text-sm ${
-            runActionFeedback.kind === "error"
+            feedback.kind === "error"
               ? "border-destructive bg-destructive-tint text-destructive"
               : "border-border bg-surface-subtle text-text-secondary"
           }`}
         >
-          {runActionFeedback.kind === "error" ? (
+          {feedback.kind === "error" ? (
             <>
-              작업 #{runActionFeedback.jobId}의
-              {runActionFeedback.action === "stop" ? " 중지" : " 재시작"} 요청에
-              실패했습니다: {runActionFeedback.message}
+              작업 #{feedback.jobId}의
+              {feedback.action === "stop"
+                ? " 중지"
+                : feedback.action === "delete"
+                  ? " 삭제"
+                  : " 재시작"} 요청에
+              실패했습니다: {feedback.message}
             </>
-          ) : runActionFeedback.kind === "stopped" ? (
-            <>작업 #{runActionFeedback.jobId}의 중지를 요청했습니다.</>
+          ) : feedback.kind === "stopped" ? (
+            <>작업 #{feedback.jobId}의 중지를 요청했습니다.</>
+          ) : feedback.kind === "deleted" ? (
+            <>작업 #{feedback.jobId}를 삭제했습니다.</>
           ) : (
             <>
-              {runActionFeedback.created
+              {feedback.created
                 ? "새 재시작 작업을 등록했습니다."
                 : "이미 진행 중인 재시작 작업을 사용합니다."}{" "}
               <Link
-                href={`/jobs/${runActionFeedback.jobId}`}
+                href={`/jobs/${feedback.jobId}`}
                 className="font-bold text-primary underline-offset-2 hover:underline"
               >
                 작업 보기
@@ -161,21 +173,28 @@ export function JobsDashboard() {
         title="진행 중 · 대기"
         icon={<ListChecksIcon className="size-4 text-brand" />}
       >
-        {queueQuery.isError ? (
-          <p className="mb-2 text-sm text-destructive">
-            {queueQuery.error.message}
-          </p>
-        ) : null}
-        {queueQuery.data?.has_more ? (
-          <p role="status" className="mb-2 text-xs text-text-secondary">
-            활성 작업 총 {activeCount}건 중 {queueRuns.length}건 표시
-          </p>
-        ) : null}
-        <RunStatusTable
-          runs={queueRuns}
-          empty="실행 중이거나 대기 중인 작업이 없습니다."
-          onActionFeedback={setRunActionFeedback}
-        />
+        {queueQuery.isPending ? (
+          <EmptyState>작업 대기열을 불러오는 중입니다.</EmptyState>
+        ) : queueQuery.isError ? (
+          <DataLoadError
+            error={queueQuery.error}
+            fallback="작업 대기열을 불러오지 못했습니다."
+            onRetry={() => void queueQuery.refetch()}
+          />
+        ) : (
+          <>
+            {queueQuery.data.has_more ? (
+              <p role="status" className="mb-2 text-xs text-text-secondary">
+                활성 작업 총 {activeCount}건 중 {queueRuns.length}건 표시
+              </p>
+            ) : null}
+            <RunStatusTable
+              runs={queueRuns}
+              empty="실행 중이거나 대기 중인 작업이 없습니다."
+              onActionFeedback={setRunActionFeedback}
+            />
+          </>
+        )}
       </Panel>
 
       <Panel title="작업 이력">
@@ -230,49 +249,56 @@ export function JobsDashboard() {
             </Button>
           </div>
 
-          {runsQuery.isError ? (
-            <p className="mb-2 text-sm text-destructive">
-              {runsQuery.error.message}
-            </p>
-          ) : null}
-          {attentionOnly ? (
-            <div
-              role="status"
-              className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-control border border-destructive bg-destructive-tint px-3 py-2 text-xs text-text-secondary"
-            >
-              <span>아직 확인하지 않은 종료 작업만 표시합니다.</span>
-              <Link
-                href="/jobs"
-                className={buttonVariants({ variant: "outline", size: "xs" })}
-              >
-                전체 이력 보기
-              </Link>
-            </div>
-          ) : null}
-          <RunStatusTable
-            runs={historyRuns}
-            empty="완료된 작업 이력이 없습니다."
-            onActionFeedback={setRunActionFeedback}
-          />
-          {runsQuery.isFetchNextPageError ? (
-            <p role="alert" className="mt-2 text-xs text-destructive">
-              다음 작업 이력을 불러오지 못했습니다. 다시 시도해 주세요.
-            </p>
-          ) : null}
-          {runsQuery.hasNextPage ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="mt-3 w-full"
-              disabled={runsQuery.isFetchingNextPage}
-              onClick={() => void runsQuery.fetchNextPage({ cancelRefetch: false })}
-            >
-              {runsQuery.isFetchingNextPage
-                ? "작업 이력 불러오는 중"
-                : `다음 작업 이력 불러오기 (${historyRuns.length}/${historyTotal})`}
-            </Button>
-          ) : null}
+          {runsQuery.isPending ? (
+            <EmptyState>작업 이력을 불러오는 중입니다.</EmptyState>
+          ) : runsQuery.isError ? (
+            <DataLoadError
+              error={runsQuery.error}
+              fallback="작업 이력을 불러오지 못했습니다."
+              onRetry={() => void runsQuery.refetch()}
+            />
+          ) : (
+            <>
+              {attentionOnly ? (
+                <div
+                  role="status"
+                  className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-control border border-destructive bg-destructive-tint px-3 py-2 text-xs text-text-secondary"
+                >
+                  <span>아직 확인하지 않은 종료 작업만 표시합니다.</span>
+                  <Link
+                    href="/jobs"
+                    className={buttonVariants({ variant: "outline", size: "xs" })}
+                  >
+                    전체 이력 보기
+                  </Link>
+                </div>
+              ) : null}
+              <RunStatusTable
+                runs={historyRuns}
+                empty="완료된 작업 이력이 없습니다."
+                onActionFeedback={setRunActionFeedback}
+              />
+              {runsQuery.isFetchNextPageError ? (
+                <p role="alert" className="mt-2 text-xs text-destructive">
+                  다음 작업 이력을 불러오지 못했습니다. 다시 시도해 주세요.
+                </p>
+              ) : null}
+              {runsQuery.hasNextPage ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="mt-3 w-full"
+                  disabled={runsQuery.isFetchingNextPage}
+                  onClick={() => void runsQuery.fetchNextPage({ cancelRefetch: false })}
+                >
+                  {runsQuery.isFetchingNextPage
+                    ? "작업 이력 불러오는 중"
+                    : `다음 작업 이력 불러오기 (${historyRuns.length}/${historyTotal})`}
+                </Button>
+              ) : null}
+            </>
+          )}
       </Panel>
     </div>
   );

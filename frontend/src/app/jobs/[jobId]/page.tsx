@@ -21,7 +21,7 @@ import {
 } from "@/lib/api";
 import { AppShell } from "@/components/AppShell";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
-import { JobDetailView } from "@/components/JobDetailView";
+import { DataLoadError, JobDetailView } from "@/components/JobDetailView";
 import { RunActionButtons } from "@/components/RunActionButtons";
 import { EmptyState, MetricCard, Panel } from "@/components/panels";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +41,7 @@ export default function JobDetailPage() {
   const statsQuery = useQuery({
     queryKey: ["run-video-stats", jobId],
     queryFn: () => getRunVideoStats(jobId),
+    enabled: !runQuery.isError,
     refetchInterval: 15_000,
   });
   const run = runQuery.data;
@@ -57,6 +58,9 @@ export default function JobDetailPage() {
               run={run}
               size="sm"
               restartBehavior="navigate"
+              onDeleted={(deletedJobId) =>
+                router.push(`/jobs?deleted=${encodeURIComponent(deletedJobId)}`)
+              }
             />
           ) : null}
           <Button
@@ -88,6 +92,14 @@ export default function JobDetailPage() {
           <Panel title="작업">
             <EmptyState>불러오는 중...</EmptyState>
           </Panel>
+        ) : runQuery.error ? (
+          <Panel title="작업">
+            <DataLoadError
+              error={runQuery.error}
+              fallback="작업 정보를 불러오지 못했습니다."
+              onRetry={() => void runQuery.refetch()}
+            />
+          </Panel>
         ) : run ? (
           <JobDetailView run={run} hideVideos variant="page" />
         ) : (
@@ -96,17 +108,17 @@ export default function JobDetailPage() {
           </Panel>
         )}
 
-        <VideoStatsSection
-          stats={stats}
-          isLoading={statsQuery.isLoading}
-          defaultCategory={
-            run
-              ? categoryDisplayLabel(
-                  run.default_category_label ?? run.default_category_code,
-                )
-              : "-"
-          }
-        />
+        {!runQuery.error && run ? (
+          <VideoStatsSection
+            stats={stats}
+            isLoading={statsQuery.isLoading}
+            error={statsQuery.error}
+            onRetry={() => void statsQuery.refetch()}
+            defaultCategory={categoryDisplayLabel(
+              run.default_category_label ?? run.default_category_code,
+            )}
+          />
+        ) : null}
       </div>
     </AppShell>
   );
@@ -115,12 +127,17 @@ export default function JobDetailPage() {
 function VideoStatsSection({
   stats,
   isLoading,
+  error,
+  onRetry,
   defaultCategory,
 }: {
   stats: RunVideoStat[];
   isLoading: boolean;
+  error: unknown;
+  onRetry: () => void;
   defaultCategory: string;
 }) {
+  const hasError = Boolean(error);
   const processed = stats.filter((stat) => stat.poi_total > 0).length;
   const totalPoi = stats.reduce((sum, stat) => sum + stat.poi_total, 0);
   const reviewPoi = stats.reduce((sum, stat) => sum + stat.poi_needs_review, 0);
@@ -133,17 +150,21 @@ function VideoStatsSection({
         <MetricCard
           icon={<ListVideoIcon className="size-4" />}
           label="처리 영상"
-          value={`${processed.toLocaleString()} / ${stats.length.toLocaleString()}개`}
+          value={
+            hasError
+              ? "—"
+              : `${processed.toLocaleString()} / ${stats.length.toLocaleString()}개`
+          }
         />
         <MetricCard
           icon={<CheckCircle2Icon className="size-4" />}
           label="추출 POI"
-          value={`${totalPoi.toLocaleString()}개`}
+          value={hasError ? "—" : `${totalPoi.toLocaleString()}개`}
         />
         <MetricCard
           icon={<CheckCircle2Icon className="size-4" />}
           label="검수 대기"
-          value={`${reviewPoi.toLocaleString()}개`}
+          value={hasError ? "—" : `${reviewPoi.toLocaleString()}개`}
           tone={reviewPoi > 0 ? "warn" : "neutral"}
         />
         <MetricCard
@@ -156,6 +177,12 @@ function VideoStatsSection({
       <Panel title="영상별 POI · 보정 자막 · 재실행">
         {isLoading ? (
           <EmptyState>불러오는 중...</EmptyState>
+        ) : error ? (
+          <DataLoadError
+            error={error}
+            fallback="영상 처리 통계를 불러오지 못했습니다."
+            onRetry={onRetry}
+          />
         ) : stats.length === 0 ? (
           <EmptyState>수집된 영상이 없습니다.</EmptyState>
         ) : (

@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 const liveEnabled = process.env.KTC_LIVE_E2E === '1';
 const e2eAdminUsername = process.env.KTC_E2E_ADMIN_USERNAME ?? 'admin';
 const e2eAdminPassword = process.env.KTC_E2E_ADMIN_PASSWORD ?? '';
+const liveBackendURL = process.env.E2E_API_BASE_URL ?? 'http://127.0.0.1:12601';
 
 test.describe('n150 live UI 셸 검증', () => {
   test.skip(!liveEnabled, 'KTC_LIVE_E2E=1 일 때만 n150 live UI를 검증한다.');
@@ -12,10 +13,21 @@ test.describe('n150 live UI 셸 검증', () => {
     test.setTimeout(60_000);
   });
 
+  test('Prometheus scrape endpoint가 운영 지표를 반환한다', async ({ request }) => {
+    const response = await request.get(`${liveBackendURL}/metrics`);
+    expect(response.status()).toBe(200);
+    const body = await response.text();
+    expect(body).toContain('# HELP ktc_http_requests');
+    expect(body).toContain('ktc_crawl_run_metrics_refresh_success');
+  });
+
   test('메뉴, 상단 작업 상태, 상태 페이지, 설정 페이지가 동작한다', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await loginAsAdmin(page, '/');
 
+    await expect(
+      page.getByRole('link', { name: 'Travel Concierge Admin UI' }),
+    ).toBeVisible();
     await expect(page.getByRole('heading', { name: '결과', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: /결과/ }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /수집/ }).first()).toBeVisible();
@@ -37,16 +49,76 @@ test.describe('n150 live UI 셸 검증', () => {
     ).toBeVisible();
     await expect(page.getByRole('heading', { name: '작업 이력' })).toBeVisible();
 
-    const detailLinks = page.getByRole('link', { name: '상세' });
-    if ((await detailLinks.count()) > 0) {
-      await detailLinks.first().click();
-      await page.waitForURL('**/jobs/*');
+    const disposableJobId = await createDisposableTerminalRun(page);
+    const runPath = `/api/v1/runs/${disposableJobId}`;
+    await page.route(`**${runPath}`, async (route) => {
+      const response = await route.fetch();
+      const body = (await response.json()) as Record<string, unknown>;
+      await route.fulfill({
+        response,
+        json: {
+          ...body,
+          state: 'failed',
+          current_message: 'YouTube API 호출 중 오류가 발생했습니다.',
+          last_error:
+            'YouTube API search 호출 실패(status=403; attempts=1; reason=quotaExceeded; api_status=PERMISSION_DENIED; message=KTC live E2E 오류 상세)',
+        },
+      });
+    });
+    await page.route(`**${runPath}/video-stats`, async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'KTC live E2E 통계 오류 상세' }),
+      });
+    });
+    await page.route(`**${runPath}/places`, async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'KTC live E2E POI 오류 상세' }),
+      });
+    });
+    let deletedByUI = false;
+    try {
+      await page.goto(`/jobs/${disposableJobId}`);
       await expect(page.getByRole('heading', { name: '작업 상세', exact: true })).toBeVisible();
       await expect(page.getByRole('button', { name: '뒤로' })).toBeVisible();
       await expect(page.getByRole('heading', { name: '로그와 결과' })).toBeVisible();
       await expect(page.getByRole('heading', { name: '영상 처리' })).toBeVisible();
-      await page.goBack();
-      await page.waitForURL(/\/jobs(\?|$)/);
+      await expect(page.getByLabel('오류 상세')).toContainText('KTC live E2E 오류 상세');
+      await expect(
+        page.getByRole('alert').filter({ hasText: '추출된 POI를 불러오지 못했습니다.' }),
+      ).toContainText('KTC live E2E POI 오류 상세');
+      await expect(
+        page.getByRole('alert').filter({ hasText: '영상 처리 통계를 불러오지 못했습니다.' }),
+      ).toContainText('KTC live E2E 통계 오류 상세');
+
+      const deleteButton = page.getByRole('button', { name: '삭제', exact: true });
+      await deleteButton.click();
+      const deleteDialog = page.getByRole('alertdialog');
+      const cancelButton = deleteDialog.getByRole('button', {
+        name: '취소',
+        exact: true,
+      });
+      await expect(cancelButton).toBeVisible();
+      await cancelButton.click();
+      await expect(deleteDialog).toHaveCount(0);
+
+      await deleteButton.click();
+      await deleteDialog.getByRole('button', { name: '삭제', exact: true }).click();
+      await page.waitForURL(/\/jobs\?deleted=/);
+      await expect(page.getByRole('status')).toContainText(
+        `작업 #${disposableJobId}를 삭제했습니다.`,
+      );
+      deletedByUI = true;
+    } finally {
+      await page.unroute(`**${runPath}`);
+      await page.unroute(`**${runPath}/video-stats`);
+      await page.unroute(`**${runPath}/places`);
+      if (!deletedByUI) {
+        await deleteDisposableRun(page, disposableJobId);
+      }
     }
 
     // /status는 시스템 메트릭·저장소·감사 로그 전용으로 축소됐다.
@@ -310,6 +382,8 @@ async function loginAsAdmin(page: Page, nextPath: string) {
     throw new Error('KTC_E2E_ADMIN_PASSWORD가 필요합니다.');
   }
   await page.goto(`/login?next=${encodeURIComponent(nextPath)}`);
+  await expect(page.getByText('Travel Concierge', { exact: true })).toBeVisible();
+  await expect(page.getByText('Admin UI', { exact: true }).first()).toBeVisible();
   await page.locator('#login-username').fill(e2eAdminUsername);
   await page.locator('#login-password').fill(e2eAdminPassword);
   await page.getByRole('button', { name: '로그인' }).click();
@@ -320,10 +394,19 @@ function collectConsoleErrors(page: Page) {
   const errors: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') {
-      errors.push(message.text());
+      // Chromium은 실패한 HTTP 응답을 URL 없이 같은 문구로 출력한다. 응답
+      // 이벤트에서 URL·상태를 별도로 수집해 예상한 mock과 실제 오류를 구분한다.
+      if (!message.text().startsWith('Failed to load resource:')) {
+        errors.push(message.text());
+      }
     }
   });
   page.on('pageerror', (error) => errors.push(error.message));
+  page.on('response', (response) => {
+    if (response.status() >= 400) {
+      errors.push(`HTTP ${response.status()} ${response.url()}`);
+    }
+  });
   return errors;
 }
 
@@ -335,17 +418,48 @@ function isRelevantConsoleError(message: string) {
   if (
     message.includes('favicon') ||
     message.includes('ResizeObserver loop completed') ||
-    message.includes('Failed to load resource: the server responded with a status of 401')
+    /^HTTP 404 .*\/favicon(?:\.ico)?(?:\?|$)/.test(message) ||
+    /^HTTP 503 .*\/api\/v1\/runs\/\d+\/(?:video-stats|places)(?:\?|$)/.test(message)
   ) {
     return false;
   }
 
-  return [
-    'Hydration failed',
-    'ReferenceError',
-    'SyntaxError',
-    'TypeError',
-    'Unhandled',
-    'Internal Server Error',
-  ].some((pattern) => message.includes(pattern));
+  return true;
+}
+
+async function createDisposableTerminalRun(page: Page): Promise<string> {
+  const response = await page.request.post('/api/v1/harvest', {
+    data: {
+      query: `KTC live delete verification ${Date.now()}`,
+      max_videos: 1,
+      skip_transcript: true,
+    },
+  });
+  expect(response.status()).toBe(200);
+  const created = (await response.json()) as { job_id: string };
+  expect(created.job_id).toBeTruthy();
+
+  const stopResponse = await page.request.post(
+    `/api/v1/runs/${created.job_id}/stop`,
+  );
+  expect([200, 400]).toContain(stopResponse.status());
+  await expect
+    .poll(
+      async () => {
+        const statusResponse = await page.request.get(
+          `/api/v1/runs/${created.job_id}`,
+        );
+        if (!statusResponse.ok()) return 'missing';
+        const status = (await statusResponse.json()) as { state: string };
+        return status.state;
+      },
+      { timeout: 30_000 },
+    )
+    .toMatch(/^(done|failed|cancelled)$/);
+  return created.job_id;
+}
+
+async function deleteDisposableRun(page: Page, jobId: string) {
+  const response = await page.context().request.delete(`/api/v1/runs/${jobId}`);
+  expect([200, 404]).toContain(response.status());
 }

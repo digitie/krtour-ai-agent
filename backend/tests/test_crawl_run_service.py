@@ -132,6 +132,69 @@ async def test_stop_running_response_snapshot_survives_worker_completion(session
     assert transition.accepted_state == RunState.RUNNING
 
 
+async def test_delete_run_removes_terminal_run(session):
+    run = await svc.create_run(session, job_type="harvest", source="web")
+    await svc.mark_done(session, run.id)
+
+    transition = await svc.delete_run(session, run.id)
+
+    assert transition is not None
+    assert transition.run_id == run.id
+    assert transition.previous_state == RunState.DONE
+    assert await svc.get_run(session, run.id) is None
+
+
+@pytest.mark.parametrize("state", [RunState.PENDING, RunState.RUNNING])
+async def test_delete_run_rejects_active_run(session, state):
+    run = await svc.create_run(session, job_type="harvest", source="web")
+    run.state = state
+    await session.commit()
+
+    with pytest.raises(ValueError, match="종료된 작업"):
+        await svc.delete_run(session, run.id)
+
+
+async def test_delete_run_rejects_active_restart_child(session):
+    origin = await _failed_run(session)
+    child, created = await svc.create_restart_run(session, origin.id, source="web")
+
+    assert created is True
+    with pytest.raises(ValueError, match="활성 재시작"):
+        await svc.delete_run(session, origin.id)
+
+    assert await svc.get_run(session, origin.id) is not None
+    assert await svc.get_run(session, child.id) is not None
+
+
+async def test_delete_run_rejects_completed_restart_child(session):
+    origin = await _failed_run(session)
+    child, created = await svc.create_restart_run(session, origin.id, source="web")
+
+    assert created is True
+    await svc.mark_done(session, child.id)
+    with pytest.raises(ValueError, match="연결된 재시작"):
+        await svc.delete_run(session, origin.id)
+
+    assert await svc.get_run(session, origin.id) is not None
+    assert await svc.get_run(session, child.id) is not None
+
+
+async def test_delete_run_rejects_payload_dependent_child(session):
+    origin = await _failed_run(session)
+    child = await svc.create_run(
+        session,
+        job_type="poi_batch",
+        source="scheduler",
+        payload={"source_job_id": origin.id, "video_ids": ["video-1"]},
+    )
+
+    with pytest.raises(ValueError, match="연결된 후속 작업"):
+        await svc.delete_run(session, origin.id)
+
+    assert await svc.get_run(session, origin.id) is not None
+    assert await svc.get_run(session, child.id) is not None
+
+
 async def test_heartbeat_and_done(session):
     run = await svc.create_run(session, job_type="harvest", source="web")
     await svc.claim_next_pending(session)

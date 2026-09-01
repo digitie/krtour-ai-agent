@@ -559,7 +559,22 @@ async def test_youtube_client_masks_api_key_on_http_error():
     def handler(request: httpx.Request) -> httpx.Response:
         assert "key" not in request.url.params
         assert request.headers.get("x-goog-api-key") == "secret-key"
-        return httpx.Response(403, json={"error": "quota"}, request=request)
+        return httpx.Response(
+            403,
+            json={
+                "error": {
+                    "status": "PERMISSION_DENIED",
+                    "message": "The request is not allowed for this API key.",
+                    "errors": [
+                        {
+                            "reason": "quotaExceeded",
+                            "message": "The request is not allowed for this API key.",
+                        }
+                    ],
+                }
+            },
+            request=request,
+        )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
         client = YouTubeClient(api_key="secret-key", http_client=http, max_retries=0)
@@ -572,6 +587,28 @@ async def test_youtube_client_masks_api_key_on_http_error():
 
     assert "secret-key" not in message
     assert "status=403" in message
+    assert "reason=quotaExceeded" in message
+    assert "PERMISSION_DENIED" in message
+    assert "The request is not allowed" in message
+
+
+async def test_youtube_client_masks_api_key_on_network_error():
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.RequestError(
+            "proxy failed: X-goog-api-key=secret-key", request=request
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        client = YouTubeClient(api_key="test-key", http_client=http, max_retries=0)
+        try:
+            await client.search_list(query="제주")
+        except YouTubeApiError as exc:
+            message = str(exc)
+        else:  # pragma: no cover - 실패해야 하는 경로
+            raise AssertionError("YouTubeApiError가 발생해야 한다")
+
+    assert "secret-key" not in message
+    assert "X-goog-api-key=***" in message
 
 
 async def test_youtube_client_enforces_quota_budget():

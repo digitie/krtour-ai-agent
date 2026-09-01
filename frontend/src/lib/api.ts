@@ -524,6 +524,37 @@ export class ApiRequestError extends Error {
   }
 }
 
+export function formatApiErrorDetail(body: unknown, rawBody: string): string {
+  if (typeof body === "string" && body.trim()) {
+    return body.trim();
+  }
+  if (body && typeof body === "object") {
+    const record = body as Record<string, unknown>;
+    for (const key of ["detail", "message", "error"]) {
+      const value = record[key];
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+      if (value && typeof value === "object") {
+        const nested = value as Record<string, unknown>;
+        for (const nestedKey of ["detail", "message", "error"]) {
+          const nestedValue = nested[nestedKey];
+          if (typeof nestedValue === "string" && nestedValue.trim()) {
+            return nestedValue.trim();
+          }
+        }
+      }
+    }
+    try {
+      const serialized = JSON.stringify(body);
+      if (serialized) return serialized;
+    } catch {
+      // JSON 직렬화가 불가능한 오류 객체는 아래 원문으로 표시한다.
+    }
+  }
+  return rawBody.trim();
+}
+
 async function requestJson<T>(
   path: string,
   init: RequestInit = {},
@@ -548,8 +579,8 @@ async function requestJson<T>(
     } catch {
       // JSON이 아닌 upstream/BFF 오류는 원문을 보존한다.
     }
-    const message =
-      rawBody.length > 240 ? `${rawBody.slice(0, 240)}...` : rawBody;
+    const detail = formatApiErrorDetail(body, rawBody);
+    const message = detail.length > 240 ? `${detail.slice(0, 240)}...` : detail;
     throw new ApiRequestError(
       response.status,
       body,
@@ -1261,6 +1292,17 @@ export type StopRunResult = {
 export async function stopRun(jobId: string): Promise<StopRunResult> {
   return requestJson<StopRunResult>(`/api/v1/runs/${jobId}/stop`, {
     method: "POST",
+  });
+}
+
+export type DeleteRunResult = {
+  job_id: string;
+  deleted: true;
+};
+
+export async function deleteRun(jobId: string): Promise<DeleteRunResult> {
+  return requestJson<DeleteRunResult>(`/api/v1/runs/${jobId}`, {
+    method: "DELETE",
   });
 }
 

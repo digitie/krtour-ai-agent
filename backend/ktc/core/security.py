@@ -215,6 +215,43 @@ async def require_admin_proxy(
     return actor
 
 
+async def require_prometheus_access(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+) -> None:
+    """내부 Prometheus scrape 또는 전용 key를 허용한다."""
+    if not settings.PROMETHEUS_METRICS_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Prometheus 지표가 비활성화되어 있다.",
+        )
+
+    expected_key = settings.PROMETHEUS_METRICS_API_KEY.strip()
+    if expected_key:
+        provided_key = (request.headers.get(API_KEY_HEADER_NAME) or "").strip()
+        if provided_key and hmac.compare_digest(provided_key, expected_key):
+            return
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Prometheus scrape 인증이 필요하다.",
+        )
+
+    # uvicorn의 proxy header 신뢰 설정이 넓으면 X-Forwarded-For가 request.client를
+    # 덮어쓸 수 있다. key 없는 경로에서는 forwarded header 자체를 거부해 loopback/CIDR
+    # 우회를 막는다. 프록시 뒤 scrape가 필요하면 전용 key 경로를 사용한다.
+    if request.headers.get("x-forwarded-for") or request.headers.get("x-real-ip"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="forwarded peer는 Prometheus 전용 key가 필요하다.",
+        )
+    if _peer_in_cidrs(request, settings.prometheus_metrics_allowed_cidrs):
+        return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="허용된 Prometheus peer가 아니다.",
+    )
+
+
 def _peer_in_cidrs(request: Request, cidrs: list[str]) -> bool:
     if not cidrs or request.client is None:
         return False

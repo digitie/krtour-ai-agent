@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import math
 from datetime import datetime, timezone
 from typing import Annotated, Any, Literal
@@ -20,6 +21,7 @@ from pydantic import BaseModel, Field, StrictBool, field_validator, model_valida
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ktc import telemetry
 from ktc.core.config import get_settings
 from ktc.core.database import get_repeatable_read_session, get_session
 from ktc.core.security import (
@@ -51,6 +53,7 @@ from ktc.models import (
     ReviewBulkAction,
     RunAttention,
     RunSource,
+    RunState,
     SourceTarget,
     TravelPlace,
     VideoPlaceMapping,
@@ -80,12 +83,22 @@ API_V1_PREFIX = "/api/v1"
 
 router = APIRouter(prefix=API_V1_PREFIX, dependencies=[Depends(require_api_key)])
 
+logger = logging.getLogger(__name__)
+
 EXPORT_DESTINATION_LIMIT_DEFAULT = 500
 EXPORT_DESTINATION_LIMIT_MAX = 1_000
 CandidateId = Annotated[
     int,
     Path(ge=1, le=list_pagination.MAX_DB_INTEGER_ID),
 ]
+
+
+def _record_run_action(action: str, result: str) -> None:
+    """Prometheus 기록 실패가 이미 커밋된 작업 응답을 500으로 바꾸지 않게 한다."""
+    try:
+        telemetry.record_run_action(action=action, result=result)
+    except Exception:  # pragma: no cover - prometheus client 장애 격리
+        logger.exception("작업 telemetry 기록 실패(action=%s, result=%s)", action, result)
 
 
 class HarvestRequest(BaseModel):
@@ -700,14 +713,26 @@ async def start_transcript(
     job_type crawl_run을 만든다. 자막 생성 전 사용자 확인 단계를 보장한다.
     요청 body에 `video_ids`를 주면 수집 결과의 부분집합만 처리한다(예: 품질 시험).
     """
-    source = await crawl_run_service.get_run(session, job_id)
+    source = await crawl_run_service.get_run_for_update(session, job_id)
     if source is None:
         raise HTTPException(status_code=404, detail="job not found")
     if source.job_type != "harvest":
         raise HTTPException(
             status_code=400, detail="transcript는 harvest 작업에만 생성할 수 있다"
         )
-    result = json.loads(source.result_json) if source.result_json else {}
+    if source.state != RunState.DONE:
+        raise HTTPException(
+            status_code=400,
+            detail="완료된 harvest 작업에서만 transcript를 생성할 수 있다",
+        )
+    try:
+        result = (
+            json.loads(source.result_json) if source.result_json else {}
+        )
+    except (TypeError, ValueError):
+        result = {}
+    if not isinstance(result, dict):
+        result = {}
     collected = result.get("video_ids") or []
     if not collected:
         raise HTTPException(
@@ -722,7 +747,14 @@ async def start_transcript(
             )
     else:
         video_ids = collected
-    source_payload = json.loads(source.payload_json) if source.payload_json else {}
+    try:
+        source_payload = (
+            json.loads(source.payload_json) if source.payload_json else {}
+        )
+    except (TypeError, ValueError):
+        source_payload = {}
+    if not isinstance(source_payload, dict):
+        source_payload = {}
     transcript_payload: dict[str, Any] = {
         "video_ids": video_ids,
         "source_job_id": job_id,
@@ -1133,20 +1165,74 @@ async def stop_run(
     (실행자가 곧 `cancelled`로 마감). 이미 종료된 작업은 400.
     """
     try:
-        transition = await crawl_run_service.stop_run(session, job_id)
+        transition = await crawl_run_service.stop_run(session, job_id, commit=False)
+        if transition is None:
+            _record_run_action("stop", "not_found")
+            raise HTTPException(status_code=404, detail="job not found")
+        await audit_service.record(
+            session,
+            actor_type="web",
+            action="run.stop",
+            target_type="crawl_run",
+            target_id=str(job_id),
+            payload={"prev_state": transition.previous_state},
+        )
     except ValueError as exc:
+        await session.rollback()
+        _record_run_action("stop", "conflict")
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if transition is None:
-        raise HTTPException(status_code=404, detail="job not found")
-    await audit_service.record(
-        session,
-        actor_type="web",
-        action="run.stop",
-        target_type="crawl_run",
-        target_id=str(job_id),
-        payload={"prev_state": transition.previous_state},
-    )
+    except HTTPException:
+        await session.rollback()
+        raise
+    except Exception:
+        await session.rollback()
+        _record_run_action("stop", "error")
+        raise
+    _record_run_action("stop", "success")
     return {"job_id": str(job_id), "state": transition.accepted_state}
+
+
+@router.delete("/runs/{job_id}")
+async def delete_run(
+    job_id: int, session: AsyncSession = Depends(get_session)
+) -> dict[str, Any]:
+    """종료된 작업 이력을 삭제한다.
+
+    작업 단계 이벤트와 작업 행만 정리하고, 수집된 영상·장소·원본 미디어 및 작업과
+    별도로 보존해야 하는 transcript/analysis 관찰 행은 보존한다. 연결된 재시작·후속
+    작업이 남아 있으면 lineage를 보존하기 위해 409로 거부한다. 삭제와 감사 기록은
+    하나의 transaction으로 커밋한다.
+    """
+    try:
+        transition = await crawl_run_service.delete_run(
+            session, job_id, commit=False
+        )
+        if transition is None:
+            _record_run_action("delete", "not_found")
+            raise HTTPException(status_code=404, detail="job not found")
+        await audit_service.record(
+            session,
+            actor_type="web",
+            action="run.delete",
+            target_type="crawl_run",
+            target_id=str(job_id),
+            payload={"prev_state": transition.previous_state.value},
+            commit=False,
+        )
+        await session.commit()
+        _record_run_action("delete", "success")
+    except HTTPException:
+        await session.rollback()
+        raise
+    except ValueError as exc:
+        await session.rollback()
+        _record_run_action("delete", "conflict")
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception:
+        await session.rollback()
+        _record_run_action("delete", "error")
+        raise
+    return {"job_id": str(job_id), "deleted": True}
 
 
 @router.post("/runs/{job_id}/restart")
@@ -1163,21 +1249,32 @@ async def restart_run(
     """
     try:
         run, created = await crawl_run_service.create_restart_run(
-            session, job_id, source=RunSource.WEB.value
+            session, job_id, source=RunSource.WEB.value, commit=False
         )
+        if run is None:
+            _record_run_action("restart", "not_found")
+            raise HTTPException(status_code=404, detail="job not found")
+        if created:
+            await audit_service.record(
+                session,
+                actor_type="web",
+                action="run.restart",
+                target_type="crawl_run",
+                target_id=str(run.id),
+                payload={"source_job_id": job_id, "restart_of_run_id": job_id},
+            )
     except ValueError as exc:
+        await session.rollback()
+        _record_run_action("restart", "conflict")
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if run is None:
-        raise HTTPException(status_code=404, detail="job not found")
-    if created:
-        await audit_service.record(
-            session,
-            actor_type="web",
-            action="run.restart",
-            target_type="crawl_run",
-            target_id=str(run.id),
-            payload={"source_job_id": job_id, "restart_of_run_id": job_id},
-        )
+    except HTTPException:
+        await session.rollback()
+        raise
+    except Exception:
+        await session.rollback()
+        _record_run_action("restart", "error")
+        raise
+    _record_run_action("restart", "success")
     return {
         "job_id": str(run.id),
         "state": run.state,

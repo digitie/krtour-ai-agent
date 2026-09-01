@@ -5,15 +5,20 @@
 """
 
 import logging
+import time
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from ktc import telemetry
 from ktc.api import router
 from ktc.core.config import get_settings
-from ktc.core.database import init_db
+from ktc.core.database import get_session, init_db
+from ktc.core.security import require_prometheus_access
 
 
 def _warn_on_risky_auth_config() -> None:
@@ -46,8 +51,8 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="kor-travel-concierge API",
-        description="FastAPI Backend for YouTube Travel Curation with Gemini",
+        title="Travel Concierge Admin UI API",
+        description="Travel Concierge Admin UI 운영 API",
         version="0.1.0",
         lifespan=lifespan,
     )
@@ -61,13 +66,56 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.middleware("http")
+    async def collect_http_metrics(request: Request, call_next):
+        started = time.perf_counter()
+        status_code = 500
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+            return response
+        finally:
+            if settings.PROMETHEUS_METRICS_ENABLED:
+                try:
+                    telemetry.record_http_request(
+                        method=request.method,
+                        path=telemetry.request_path(request),
+                        status_code=status_code,
+                        duration_seconds=time.perf_counter() - started,
+                    )
+                except Exception:  # pragma: no cover - prometheus client 장애 격리
+                    logging.getLogger("ktc.telemetry").exception(
+                        "Prometheus HTTP 지표 기록에 실패했다"
+                    )
+
     @app.get("/")
     def read_root() -> dict[str, str]:
-        return {"message": "Welcome to kor-travel-concierge API", "status": "running"}
+        return {
+            "message": "Welcome to Travel Concierge Admin UI API",
+            "status": "running",
+        }
 
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get(
+        "/metrics",
+        include_in_schema=False,
+        dependencies=[Depends(require_prometheus_access)],
+    )
+    async def prometheus_metrics(
+        session: AsyncSession = Depends(get_session),
+    ) -> Response:
+        try:
+            await telemetry.refresh_run_metrics(session)
+        except Exception:
+            # 지표 endpoint 자체는 DB 집계가 잠시 실패해도 process/HTTP 지표를 제공한다.
+            telemetry.mark_run_metrics_refresh_failed()
+            logging.getLogger("ktc.telemetry").exception(
+                "Prometheus 작업 지표 갱신에 실패했다"
+            )
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     app.include_router(router)
     return app

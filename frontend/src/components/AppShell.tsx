@@ -158,7 +158,7 @@ export function AppShell({
               )}
             >
               <Link
-                aria-label="Korea Travel Concierge"
+                aria-label="Travel Concierge Admin UI"
                 className={cn(
                   "flex min-w-0 items-baseline gap-1.5 rounded-control text-[var(--shell-rail-text)] no-underline hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
                   sidebarCollapsed && "lg:justify-center",
@@ -171,7 +171,7 @@ export function AppShell({
                     sidebarCollapsed && "lg:hidden",
                   )}
                 >
-                  Korea Travel
+                  Travel Concierge
                 </span>
                 <span
                   className={cn(
@@ -179,7 +179,7 @@ export function AppShell({
                     sidebarCollapsed && "lg:hidden",
                   )}
                 >
-                  Concierge
+                  Admin UI
                 </span>
                 <span
                   aria-hidden="true"
@@ -188,7 +188,7 @@ export function AppShell({
                     sidebarCollapsed && "lg:inline",
                   )}
                 >
-                  ktc
+                  tca
                 </span>
               </Link>
               <div className="flex shrink-0 items-center gap-1">
@@ -294,11 +294,13 @@ export function AppShell({
                 />
               ) : null}
               <Button
+                aria-label="로그아웃"
                 className={cn(
                   "h-control-sm w-full justify-start border-0 px-3 text-xs font-medium text-[var(--shell-rail-muted)] hover:bg-white/10 hover:text-white",
                   sidebarCollapsed && "lg:size-control lg:justify-center lg:px-0",
                 )}
                 type="button"
+                title={sidebarCollapsed ? "로그아웃" : undefined}
                 variant="ghost"
                 onClick={logout}
               >

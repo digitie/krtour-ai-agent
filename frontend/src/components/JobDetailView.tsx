@@ -33,6 +33,7 @@ import {
 import { durationLabel, formatDateTime, intervalLabel } from "@/lib/format";
 import { JobLogView } from "@/components/JobLogDialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyState, MetricCard, Panel, Section } from "@/components/panels";
 
 function runResultLabel(result: Record<string, unknown>, hasResult: boolean): string {
@@ -47,6 +48,43 @@ function runResultLabel(result: Record<string, unknown>, hasResult: boolean): st
     parts.push(`등록 ${result.enqueued_jobs}`);
   }
   return parts.length > 0 ? parts.join(" · ") : "결과 기록 있음";
+}
+
+function queryErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+export function DataLoadError({
+  error,
+  fallback,
+  onRetry,
+}: {
+  error: unknown;
+  fallback: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="flex flex-col gap-2 rounded-control border border-destructive bg-destructive-tint p-3 text-sm text-destructive"
+    >
+      <p className="font-semibold">{fallback}</p>
+      <pre className="max-h-40 overflow-auto break-words whitespace-pre-wrap text-xs">
+        {queryErrorMessage(error, fallback)}
+      </pre>
+      {onRetry ? (
+        <Button
+          type="button"
+          size="xs"
+          variant="outline"
+          className="w-fit border-destructive text-destructive hover:bg-destructive/10"
+          onClick={onRetry}
+        >
+          다시 시도
+        </Button>
+      ) : null}
+    </div>
+  );
 }
 
 // 작업 상세 본문(필드·상태로그·추출 POI·수집 영상). 다이얼로그와 별도 페이지(/jobs/[id])
@@ -168,6 +206,8 @@ export function JobDetailView({
               <RunPlacesTable
                 places={places}
                 isLoading={placesQuery.isLoading}
+                error={placesQuery.error}
+                onRetry={() => void placesQuery.refetch()}
                 onOpenPlace={openPlace}
               />
             </Panel>
@@ -181,6 +221,8 @@ export function JobDetailView({
             <CollectedVideosTable
               videos={videos}
               isLoading={videosQuery.isLoading}
+              error={videosQuery.error}
+              onRetry={() => void videosQuery.refetch()}
             />
           </Panel>
         </Section>
@@ -360,13 +402,26 @@ function TargetProgressPanel({ target }: { target: SourceTargetSummary }) {
 function RunPlacesTable({
   places,
   isLoading,
+  error,
+  onRetry,
   onOpenPlace,
 }: {
   places: RunPlace[];
   isLoading: boolean;
+  error: unknown;
+  onRetry: () => void;
   onOpenPlace: (place: RunPlace) => void;
 }) {
   if (isLoading) return <EmptyState>불러오는 중...</EmptyState>;
+  if (error) {
+    return (
+      <DataLoadError
+        error={error}
+        fallback="추출된 POI를 불러오지 못했습니다."
+        onRetry={onRetry}
+      />
+    );
+  }
   if (places.length === 0) return <EmptyState>추출된 POI가 없습니다.</EmptyState>;
 
   return (
@@ -420,6 +475,8 @@ function RunPlacesTable({
 function CollectedVideosTable({
   videos,
   isLoading,
+  error,
+  onRetry,
 }: {
   videos: {
     video_id: string;
@@ -430,8 +487,19 @@ function CollectedVideosTable({
     published_at?: string | null;
   }[];
   isLoading: boolean;
+  error: unknown;
+  onRetry: () => void;
 }) {
   if (isLoading) return <EmptyState>불러오는 중...</EmptyState>;
+  if (error) {
+    return (
+      <DataLoadError
+        error={error}
+        fallback="수집된 영상을 불러오지 못했습니다."
+        onRetry={onRetry}
+      />
+    );
+  }
   if (videos.length === 0) return <EmptyState>수집된 영상이 없습니다.</EmptyState>;
 
   return (

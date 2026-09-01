@@ -6,8 +6,6 @@
 
 ## 진행 중
 
-없음.
-
 ---
 
 ## 대기 (우선순위 순)
@@ -26,6 +24,14 @@
 ---
 
 ## 완료
+
+- [x] **사용자 지시(PR #224)**: 종료된 작업 삭제, YouTube·작업 오류 상세 UI, Prometheus
+  telemetry, `Travel Concierge Admin UI` 브랜딩을 구현했다. `kor-travel-map` 최신 구조와
+  컴포넌트 언어를 반영하면서 기존 보라색 색상톤을 유지했고, stop/restart/delete 감사 경계를
+  원자 transaction으로 정리했다. n150 운영 배포 후 UI 인증 hash 길이 87, 공개 로그인
+  `200 + Set-Cookie`, 잘못된 비밀번호 `401`, Alembic `20260901_0029`, Prometheus target
+  `up`/refresh value `1`, Linux live E2E 5건 통과를 확인했다. 상세는 `docs/journal.md` 최신
+  항목 참조.
 
 - [x] **운영 콘솔 UI 최신 기준 레포 정렬**: 2026-08-31 `kor-travel-map` `origin/main`
   (2c1cf954) 기준으로 Rail 그룹 메뉴, 접힘 상태, header band, flat panel, StatStrip, 폼·표·dialog

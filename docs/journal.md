@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-09-01: 작업 삭제·오류 상세·Prometheus telemetry·운영 콘솔 브랜딩
+
+- **작업 삭제**: 종료된 `done`/`failed`/`cancelled` 작업만 잠금 후 삭제하도록 REST API와
+  `/jobs` 액션을 추가했다. 실행 중 작업과 활성 재시작 자식이 있는 원본은 거부하며, 작업
+  단계 이벤트·감사 대상만 정리하고 영상·장소·원본 미디어·관찰 이력은 보존한다.
+- **오류 진단**: YouTube Data API 오류 응답의 status/reason/API status/message와 재시도
+  횟수를 API key 마스킹 후 `last_error`에 남기도록 보강했다. 작업 상세의 `오류 상세` 영역에서
+  전체 원인을 읽고 복사할 수 있으며, 실패 작업 UI E2E fixture로 회귀 검증한다.
+- **Prometheus telemetry**: 내부 `/metrics` scrape endpoint에 HTTP 요청/처리시간, 현재
+  작업 상태, 실패 원인 종류, 작업 삭제 결과를 저카디널리티 label로 노출한다. 기본 접근은
+  loopback/Docker 사설 CIDR로 제한하고 필요하면 별도 `X-API-Key`를 요구한다.
+- **브랜드명**: 브라우저 title, 로그인 화면, 좌측 메뉴 상단과 접근성 이름을
+  `Travel Concierge Admin UI`로 통일했다. 기존 운영 콘솔의 보라색 색상톤은 유지한다.
+- **검증**: backend 전체 테스트 `300 passed, 529 skipped`, frontend Vitest `336 passed`,
+  lint·type-check·production build를 통과했다. n150 운영에서 `20260901_0029` migration,
+  API/UI/scheduler 재생성, UI 인증 hash 길이 87, API health 200, 공개 로그인
+  `200 + Set-Cookie`, 잘못된 비밀번호 `401`을 확인했다. Prometheus 컨테이너의 `promtool`
+  설정 검증, concierge API target `up`, refresh query value `1`, 최신 UI의 Linux live
+  Playwright **5 passed**를 확인했다. 삭제·상세 오류·의도된 오류 mock과 strict HTTP 오류
+  수집도 live 시나리오에 포함한다.
+- **리뷰·후속 보강**: 두 전문 리뷰어의 백엔드/프론트엔드 적대적 리뷰에서 확인된 확정 회귀를
+  반영했다. stop/restart 상태 변경과 audit 기록을 같은 transaction으로 묶고, 상세 삭제 후
+  삭제된 run을 다시 조회하지 않도록 했다. 로컬 삭제 assertion을 대상명 기반으로 갱신하고,
+  live E2E는 favicon·ResizeObserver 및 명시된 오류 mock만 허용하며 그 밖의 HTTP 4xx/5xx와
+  JavaScript 오류는 실패하도록 강화했다. API worker는 최신 execution lock 코드와 함께
+  재생성했다.
+
 ## 2026-08-31: 최신 kor-travel-map admin UI 구조·컴포넌트 정렬
 
 - **기준 확인**: 별도 저장소 `kor-travel-map`의 `origin/main` 최신 커밋

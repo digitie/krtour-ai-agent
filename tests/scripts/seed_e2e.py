@@ -150,7 +150,11 @@ async def main() -> None:
             attention=RunAttention.OPEN,
             progress=0.57,
             current_message="장소 추출 중 오류가 발생했습니다.",
-            last_error="E2E 재시작 검증 오류",
+            last_error=(
+                "YouTube API search 호출 실패(status=403; attempts=1; "
+                "reason=quotaExceeded; api_status=PERMISSION_DENIED; "
+                "message=The request is not allowed for this API key.)"
+            ),
             finished_at=datetime.now(timezone.utc),
         )
         quota_deferred_run = CrawlRun(
