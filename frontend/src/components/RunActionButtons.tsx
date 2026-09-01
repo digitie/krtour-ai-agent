@@ -55,9 +55,12 @@ export function RunActionButtons({
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["runs"] }),
       queryClient.invalidateQueries({ queryKey: RUN_QUEUE_QUERY_KEY }),
-      ...jobIds.map((jobId) =>
+      ...jobIds.flatMap((jobId) => [
         queryClient.invalidateQueries({ queryKey: ["run", jobId] }),
-      ),
+        queryClient.invalidateQueries({ queryKey: ["run-video-stats", jobId] }),
+        queryClient.invalidateQueries({ queryKey: ["job-videos", jobId] }),
+        queryClient.invalidateQueries({ queryKey: ["job-places", jobId] }),
+      ]),
     ]);
   }
 

@@ -40,31 +40,72 @@ test.describe('n150 live UI 셸 검증', () => {
     ).toBeVisible();
     await expect(page.getByRole('heading', { name: '작업 이력' })).toBeVisible();
 
-    const detailLinks = page.getByRole('link', { name: '상세' });
-    if ((await detailLinks.count()) > 0) {
-      await detailLinks.first().click();
-      await page.waitForURL('**/jobs/*');
+    const disposableJobId = await createDisposableTerminalRun(page);
+    const runPath = `/api/v1/runs/${disposableJobId}`;
+    await page.route(`**${runPath}`, async (route) => {
+      const response = await route.fetch();
+      const body = (await response.json()) as Record<string, unknown>;
+      await route.fulfill({
+        response,
+        json: {
+          ...body,
+          state: 'failed',
+          current_message: 'YouTube API 호출 중 오류가 발생했습니다.',
+          last_error:
+            'YouTube API search 호출 실패(status=403; attempts=1; reason=quotaExceeded; api_status=PERMISSION_DENIED; message=KTC live E2E 오류 상세)',
+        },
+      });
+    });
+    await page.route(`**${runPath}/video-stats`, async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'KTC live E2E 통계 오류 상세' }),
+      });
+    });
+    await page.route(`**${runPath}/places`, async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'KTC live E2E POI 오류 상세' }),
+      });
+    });
+    try {
+      await page.goto(`/jobs/${disposableJobId}`);
       await expect(page.getByRole('heading', { name: '작업 상세', exact: true })).toBeVisible();
       await expect(page.getByRole('button', { name: '뒤로' })).toBeVisible();
       await expect(page.getByRole('heading', { name: '로그와 결과' })).toBeVisible();
       await expect(page.getByRole('heading', { name: '영상 처리' })).toBeVisible();
+      await expect(page.getByLabel('오류 상세')).toContainText('KTC live E2E 오류 상세');
+      await expect(
+        page.getByRole('alert').filter({ hasText: '추출된 POI를 불러오지 못했습니다.' }),
+      ).toContainText('KTC live E2E POI 오류 상세');
+      await expect(
+        page.getByRole('alert').filter({ hasText: '영상 처리 통계를 불러오지 못했습니다.' }),
+      ).toContainText('KTC live E2E 통계 오류 상세');
+
       const deleteButton = page.getByRole('button', { name: '삭제', exact: true });
-      if ((await deleteButton.count()) > 0) {
-        await deleteButton.first().click();
-        const deleteDialog = page.getByRole('alertdialog');
-        const cancelButton = deleteDialog.getByRole('button', {
-          name: '취소',
-          exact: true,
-        });
-        await expect(cancelButton).toBeVisible();
-        await cancelButton.click();
-      }
-      const errorDetail = page.getByLabel('오류 상세');
-      if ((await errorDetail.count()) > 0) {
-        await expect(errorDetail).toBeVisible();
-      }
-      await page.goBack();
-      await page.waitForURL(/\/jobs(\?|$)/);
+      await deleteButton.click();
+      const deleteDialog = page.getByRole('alertdialog');
+      const cancelButton = deleteDialog.getByRole('button', {
+        name: '취소',
+        exact: true,
+      });
+      await expect(cancelButton).toBeVisible();
+      await cancelButton.click();
+      await expect(deleteDialog).toHaveCount(0);
+
+      await deleteButton.click();
+      await deleteDialog.getByRole('button', { name: '삭제', exact: true }).click();
+      await page.waitForURL(/\/jobs\?deleted=/);
+      await expect(page.getByRole('status')).toContainText(
+        `작업 #${disposableJobId}를 삭제했습니다.`,
+      );
+    } finally {
+      await page.unroute(`**${runPath}`);
+      await page.unroute(`**${runPath}/video-stats`);
+      await page.unroute(`**${runPath}/places`);
+      await deleteDisposableRun(page, disposableJobId);
     }
 
     // /status는 시스템 메트릭·저장소·감사 로그 전용으로 축소됐다.
@@ -368,4 +409,41 @@ function isRelevantConsoleError(message: string) {
     'Unhandled',
     'Internal Server Error',
   ].some((pattern) => message.includes(pattern));
+}
+
+async function createDisposableTerminalRun(page: Page): Promise<string> {
+  const response = await page.request.post('/api/v1/harvest', {
+    data: {
+      query: `KTC live delete verification ${Date.now()}`,
+      max_videos: 1,
+      skip_transcript: true,
+    },
+  });
+  expect(response.status()).toBe(200);
+  const created = (await response.json()) as { job_id: string };
+  expect(created.job_id).toBeTruthy();
+
+  const stopResponse = await page.request.post(
+    `/api/v1/runs/${created.job_id}/stop`,
+  );
+  expect([200, 400]).toContain(stopResponse.status());
+  await expect
+    .poll(
+      async () => {
+        const statusResponse = await page.request.get(
+          `/api/v1/runs/${created.job_id}`,
+        );
+        if (!statusResponse.ok()) return 'missing';
+        const status = (await statusResponse.json()) as { state: string };
+        return status.state;
+      },
+      { timeout: 30_000 },
+    )
+    .toMatch(/^(done|failed|cancelled)$/);
+  return created.job_id;
+}
+
+async function deleteDisposableRun(page: Page, jobId: string) {
+  const response = await page.request.delete(`/api/v1/runs/${jobId}`);
+  expect([200, 404, 409]).toContain(response.status());
 }

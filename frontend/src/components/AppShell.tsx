@@ -294,11 +294,13 @@ export function AppShell({
                 />
               ) : null}
               <Button
+                aria-label="로그아웃"
                 className={cn(
                   "h-control-sm w-full justify-start border-0 px-3 text-xs font-medium text-[var(--shell-rail-muted)] hover:bg-white/10 hover:text-white",
                   sidebarCollapsed && "lg:size-control lg:justify-center lg:px-0",
                 )}
                 type="button"
+                title={sidebarCollapsed ? "로그아웃" : undefined}
                 variant="ghost"
                 onClick={logout}
               >

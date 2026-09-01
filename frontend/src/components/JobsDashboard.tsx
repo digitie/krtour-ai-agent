@@ -59,10 +59,15 @@ export function JobsDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const attentionOnly = searchParams.get("attention") === "open";
+  const deletedJobId = searchParams.get("deleted");
   const [stateFilter, setStateFilter] = useState<string>(JOB_HISTORY_STATE_ALL);
   const [typeFilter, setTypeFilter] = useState<string>(JOB_HISTORY_TYPE_ALL);
   const [runActionFeedback, setRunActionFeedback] =
     useState<RunActionFeedback | null>(null);
+  const routeFeedback: RunActionFeedback | null = deletedJobId
+    ? { kind: "deleted", jobId: deletedJobId }
+    : null;
+  const feedback = runActionFeedback ?? routeFeedback;
 
   const queueQuery = useQuery({
     queryKey: RUN_QUEUE_QUERY_KEY,
@@ -124,36 +129,36 @@ export function JobsDashboard() {
         </Button>
       </div>
 
-      {runActionFeedback ? (
+      {feedback ? (
         <div
-          role={runActionFeedback.kind === "error" ? "alert" : "status"}
+          role={feedback.kind === "error" ? "alert" : "status"}
           className={`rounded-control border px-3 py-2 text-sm ${
-            runActionFeedback.kind === "error"
+            feedback.kind === "error"
               ? "border-destructive bg-destructive-tint text-destructive"
               : "border-border bg-surface-subtle text-text-secondary"
           }`}
         >
-          {runActionFeedback.kind === "error" ? (
+          {feedback.kind === "error" ? (
             <>
-              작업 #{runActionFeedback.jobId}의
-              {runActionFeedback.action === "stop"
+              작업 #{feedback.jobId}의
+              {feedback.action === "stop"
                 ? " 중지"
-                : runActionFeedback.action === "delete"
+                : feedback.action === "delete"
                   ? " 삭제"
                   : " 재시작"} 요청에
-              실패했습니다: {runActionFeedback.message}
+              실패했습니다: {feedback.message}
             </>
-          ) : runActionFeedback.kind === "stopped" ? (
-            <>작업 #{runActionFeedback.jobId}의 중지를 요청했습니다.</>
-          ) : runActionFeedback.kind === "deleted" ? (
-            <>작업 #{runActionFeedback.jobId}를 삭제했습니다.</>
+          ) : feedback.kind === "stopped" ? (
+            <>작업 #{feedback.jobId}의 중지를 요청했습니다.</>
+          ) : feedback.kind === "deleted" ? (
+            <>작업 #{feedback.jobId}를 삭제했습니다.</>
           ) : (
             <>
-              {runActionFeedback.created
+              {feedback.created
                 ? "새 재시작 작업을 등록했습니다."
                 : "이미 진행 중인 재시작 작업을 사용합니다."}{" "}
               <Link
-                href={`/jobs/${runActionFeedback.jobId}`}
+                href={`/jobs/${feedback.jobId}`}
                 className="font-bold text-primary underline-offset-2 hover:underline"
               >
                 작업 보기
