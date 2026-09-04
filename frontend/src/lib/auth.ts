@@ -184,8 +184,11 @@ export function requestHasSameOrigin(
   env: Env = process.env,
 ): boolean {
   const origin = request.headers.get("origin");
+  // kor-travel-docker-manager의 require_frontend_origin과 동일하게 Origin 헤더
+  // 부재를 거부한다. 브라우저는 same-origin POST/state-changing 요청에도 항상
+  // Origin을 보내므로(Fetch 표준), 정상적인 로그인/로그아웃 흐름에는 영향이 없다.
   if (!origin) {
-    return true;
+    return false;
   }
   try {
     const normalized = normalizeOrigin(origin);

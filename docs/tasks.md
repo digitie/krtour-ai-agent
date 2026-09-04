@@ -25,6 +25,11 @@
 
 ## 완료
 
+- [x] **로그인 CSRF Origin 검사를 docker-manager와 정렬**: `requestHasSameOrigin`이
+  Origin 헤더 부재를 거부하도록 바꿨다(기존엔 통과). 세션/rate-limit 영속화와 CIDR
+  trusted-proxy는 범위에서 제외(전자는 단일 컨테이너로 충분, 후자는 Next.js
+  `NextRequest`에 raw socket peer 접근자가 없어 헤더만으로는 재현 시 위조 가능).
+  상세는 `docs/journal.md` 2026-09-04 항목 참조.
 - [x] **Prometheus 기본 수집기 ktc_ namespace 정렬**: `/metrics`가 노출하던 접두어 없는
   prometheus_client 기본 process/platform/gc 수집기를 해제하고, process 지표만
   `ProcessCollector(namespace="ktc")`로 재등록했다. docker-manager의 `ktdm_*` 전용 노출

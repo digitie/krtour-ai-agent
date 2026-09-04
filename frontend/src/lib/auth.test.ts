@@ -85,8 +85,8 @@ describe("requestHasSameOrigin (CSRF origin check)", () => {
   }
   const env = { KTC_UI_PUBLIC_ORIGINS: "https://concierge.example.org, https://www.concierge.example.org" };
 
-  it("Origin 헤더가 없으면 통과", () => {
-    expect(requestHasSameOrigin(req(null), env)).toBe(true);
+  it("Origin 헤더가 없으면 거부(docker-manager의 require_frontend_origin과 동일)", () => {
+    expect(requestHasSameOrigin(req(null), env)).toBe(false);
   });
   it("재구성된 same-origin이면 통과(화이트리스트 불필요)", () => {
     expect(requestHasSameOrigin(req("http://internal:12605"), env)).toBe(true);
