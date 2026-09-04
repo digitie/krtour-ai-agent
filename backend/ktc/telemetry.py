@@ -6,11 +6,31 @@ import re
 from collections import defaultdict
 from typing import Any
 
-from prometheus_client import Counter, Gauge, Histogram
+from prometheus_client import (
+    GC_COLLECTOR,
+    PLATFORM_COLLECTOR,
+    PROCESS_COLLECTOR,
+    REGISTRY,
+    Counter,
+    Gauge,
+    Histogram,
+    ProcessCollector,
+)
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ktc.models import CrawlRun, RunState
+
+# prometheus_client의 기본 수집기(process/platform/gc)는 접두어가 없어 kor-travel
+# 계열의 서비스별 네임스페이스 규약(concierge=ktc_, docker-manager=ktdm_)을 벗어난다.
+# 기본 수집기를 해제하고, 값이 있는 process 지표만 ktc_ namespace로 다시 등록한다
+# (플랫폼 정보·GC 통계는 운영상 가치가 낮아 다시 등록하지 않는다).
+for _default_collector in (PROCESS_COLLECTOR, PLATFORM_COLLECTOR, GC_COLLECTOR):
+    try:
+        REGISTRY.unregister(_default_collector)
+    except KeyError:
+        pass
+ProcessCollector(namespace="ktc")
 
 HTTP_REQUESTS = Counter(
     "ktc_http_requests",

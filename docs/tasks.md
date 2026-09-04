@@ -25,6 +25,10 @@
 
 ## 완료
 
+- [x] **Prometheus 기본 수집기 ktc_ namespace 정렬**: `/metrics`가 노출하던 접두어 없는
+  prometheus_client 기본 process/platform/gc 수집기를 해제하고, process 지표만
+  `ProcessCollector(namespace="ktc")`로 재등록했다. docker-manager의 `ktdm_*` 전용 노출
+  방식에 맞춘 사용자 지시. 상세는 `docs/journal.md` 2026-09-04 항목 참조.
 - [x] **사용자 지시(PR #224)**: 종료된 작업 삭제, YouTube·작업 오류 상세 UI, Prometheus
   telemetry, `Travel Concierge Admin UI` 브랜딩을 구현했다. `kor-travel-map` 최신 구조와
   컴포넌트 언어를 반영하면서 기존 보라색 색상톤을 유지했고, stop/restart/delete 감사 경계를
