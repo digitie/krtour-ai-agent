@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-09-04: 로그인 CSRF Origin 검사를 kor-travel-docker-manager와 정렬
+
+- **비교**: `kor-travel-docker-manager`의 `require_frontend_origin`은 Origin 헤더가
+  없으면 403으로 거부하는 반면, concierge의 `requestHasSameOrigin`은 Origin 헤더
+  부재를 통과시켰다. 세션/rate-limit 영속화(docker-manager는 DB 감사 로그로 계산,
+  concierge는 in-memory)와 CIDR 기반 trusted-proxy(docker-manager는 raw socket
+  peer를 CIDR와 대조)도 비교했으나, 전자는 concierge가 단일 컨테이너로 충분하고
+  후자는 Next.js App Router `NextRequest`에 raw socket peer 접근자가 전혀 없어
+  (`.ip`/`.geo` 제거됨, 헤더만 존재) 헤더만으로 재현하면 위조 가능한 보안 착시가
+  된다고 판단해 범위에서 제외했다. 사용자 지시로 Origin 거부만 정렬한다.
+- **조치**: `frontend/src/lib/auth.ts`의 `requestHasSameOrigin`이 Origin 헤더 부재를
+  거부(`false`)하도록 바꿨다. `/api/auth/login`·`/api/auth/logout`만 이 함수를 쓰며
+  기존 `INVALID_ORIGIN` 403 + 감사 이벤트 경로를 그대로 탄다. 브라우저는 same-origin
+  POST에도 항상 Origin을 보내므로(Fetch 표준) 정상 로그인/로그아웃 흐름에는 영향이 없다.
+- **검증**: frontend lint·`tsc --noEmit`·Vitest 336건(기존 "Origin 헤더가 없으면 통과"
+  단언을 거부로 갱신)·`next build --webpack`을 통과했다.
+
 ## 2026-09-04: Prometheus 기본 수집기를 ktc_ namespace로 정렬
 
 - **문제**: `/metrics`가 앱 지표(`ktc_*`)와 함께 prometheus_client 기본 수집기의
