@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-09-04: Prometheus 기본 수집기를 ktc_ namespace로 정렬
+
+- **문제**: `/metrics`가 앱 지표(`ktc_*`)와 함께 prometheus_client 기본 수집기의
+  `process_*`/`python_info`/`python_gc_*`를 접두어 없이 그대로 노출했다. kor-travel
+  계열의 서비스별 네임스페이스 관례(concierge=`ktc_`, kor-travel-docker-manager=`ktdm_`)를
+  벗어난다.
+- **조치**: `ktc/telemetry.py` 모듈 로드 시 기본 `PROCESS_COLLECTOR`/`PLATFORM_COLLECTOR`/
+  `GC_COLLECTOR`를 REGISTRY에서 해제하고, 값이 있는 process 지표(`ktc_process_cpu_seconds_total`
+  등 6종)만 `ProcessCollector(namespace="ktc")`로 다시 등록했다. `python_info`(정적
+  메타데이터)·`python_gc_*`(진단용, 운영 가치 낮음)는 다시 등록하지 않는다 —
+  docker-manager의 hand-rolled `ktdm_*` 전용 노출 방식과 같은 "접두어 없는 지표는
+  노출하지 않는다" 원칙에 맞췄다.
+- **검증**: `generate_latest()` 직접 호출로 `ktc_process_cpu_seconds_total` 존재,
+  접두어 없는 `process_cpu_seconds_total`/`python_info`/`python_gc_objects_collected_total`
+  부재를 확인했다. 같은 계약을 `test_prometheus_metrics_endpoint_shape`에 추가했다.
+  backend 전체 pytest(PostGIS DB 의존 항목은 `KTC_TEST_PG_DSN` 미설정으로 스킵, 나머지
+  전부 통과)와 변경 파일 ruff를 통과했다.
+
 ## 2026-09-01: 작업 삭제·오류 상세·Prometheus telemetry·운영 콘솔 브랜딩
 
 - **작업 삭제**: 종료된 `done`/`failed`/`cancelled` 작업만 잠금 후 삭제하도록 REST API와

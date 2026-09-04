@@ -329,6 +329,13 @@ async def test_prometheus_metrics_endpoint_shape(client):
     assert "ktc_crawl_runs" in body
     assert "ktc_crawl_run_errors" in body
     assert "ktc_crawl_run_metrics_refresh_success" in body
+    # prometheus_client 기본 수집기는 접두어 없이 노출되므로 해제하고, process
+    # 지표만 ktc_ namespace로 다시 등록한다(ktc.telemetry) — 값이 없는
+    # python_info/python_gc_* 는 다시 등록하지 않는다.
+    assert "ktc_process_cpu_seconds_total" in body
+    assert "\nprocess_cpu_seconds_total" not in body
+    assert "python_info" not in body
+    assert "python_gc_objects_collected_total" not in body
 
 
 async def test_run_videos_endpoint(client, session):
