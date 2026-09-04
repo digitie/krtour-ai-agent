@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-09-04: mcp 서비스 crash-loop 긴급 수정 (mcp 2.x 전이 의존성)
+
+- **장애**: Prometheus/로그인 정렬 변경 배포로 backend 3서비스(api/mcp/scheduler,
+  공용 이미지)를 재빌드하자 `kor-travel-concierge-mcp-latest`가 `Restarting`으로
+  crash-loop했다. `ktc/mcp_server/server.py`가 `from mcp.server.fastmcp import
+  FastMCP`(v1 API)를 쓰는데, `requirements.txt`에 `mcp` 패키지가 직접 선언되지
+  않고 다른 패키지의 전이 의존성으로만 상한 없이 들어와 있었다 — 이번 재빌드의
+  `pip install`이 방금 나온 `mcp 2.1.1`(breaking change: `FastMCP`→`MCPServer`)을
+  집어 기존 코드가 깨졌다. mcp 서비스는 이 배포 이전에도 원인 불명으로 3일째
+  정지 상태였어서(`Exited (0)`) 이번 강제 재생성 전까지 드러나지 않았다.
+- **조치**: `backend/requirements.txt`에 `mcp<2`를 직접 선언(전이 의존성에서 명시
+  의존성으로 승격)했다. 로컬에서 `mcp==1.29.1` 해석·`from mcp.server.fastmcp import
+  FastMCP` import·`ktc.mcp_server.server.build_server()` 성공을 확인했다.
+- **검증**: backend mcp 관련 pytest(스킵 제외 전부 통과), n150에서 backend 3서비스
+  재빌드·재생성 후 `kor-travel-concierge-mcp-latest`가 `Up`으로 안정화됨을 확인한다
+  (배포 진행 중, 상세는 다음 기록 참조).
+
 ## 2026-09-04: 로그인 CSRF Origin 검사를 kor-travel-docker-manager와 정렬
 
 - **비교**: `kor-travel-docker-manager`의 `require_frontend_origin`은 Origin 헤더가

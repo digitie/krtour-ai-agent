@@ -1,5 +1,9 @@
 fastapi>=0.110.0
 uvicorn>=0.28.0
+# mcp 2.x는 FastMCP -> MCPServer로 API가 바뀌어 ktc/mcp_server/server.py의 v1 API
+# 사용과 호환되지 않는다(mcp<2로 고정, 이전까지는 google-generativeai 등의 전이
+# 의존성으로만 들어와 상한이 없어 2026-09-04 배포에서 mcp 2.1.1로 올라가며 깨졌다).
+mcp<2
 sqlalchemy>=2.0.28
 asyncpg>=0.29.0
 geoalchemy2>=0.14.7
