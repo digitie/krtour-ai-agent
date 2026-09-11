@@ -4,6 +4,48 @@
 
 ---
 
+## 2026-09-11: VWorld 지도를 공용 vworld-map-web 라이브러리로 교체
+
+- **배경**: `frontend/src/components/VWorldMap.tsx`가 `maplibre-gl`을 직접 명령형으로
+  다뤘다(수동 `Map`/`Marker`/`Popup` 생성, DOM 스타일 조작, `ResizeObserver`). 사용자
+  지시로 형제 모노레포 `maplibre-vworld-react`의 `vworld-map-web` 패키지(`pinvi`가 이미
+  같은 방식으로 소비 중)를 채택해 선언형 API로 교체했다. npm에 배포하지 않는 패키지라
+  모노레포 HEAD(`ffa5523`)에서 새로 빌드한 tarball을 `frontend/vendor/`에 vendoring하고
+  `package.json`에 `file:` 의존성으로 추가했다.
+- **구현**: `VWorldMapView`(동적 import, `ssr:false`) + `Marker`(숫자 배지를 `children`으로
+  포팅) + `Popup`(선택된 장소에만 렌더)으로 재작성했다. 외부 prop 계약(`places`,
+  `selectedPlaceId`, `onSelectPlace`, `focusKey?`)과 두 소비처(`DestinationWorkspace`,
+  `ReviewWorkspace`)는 변경하지 않았다.
+- **적대적 리뷰 2인에서 발견·수정한 회귀**:
+  - **[BLOCKER]** `VWorldMapView`는 `apiKey`가 비어 있으면 지도·마커·팝업을 전혀
+    마운트하지 않고 fallback만 렌더한다(설계상 동작). 키 없는 개발 환경에서도 마커
+    클릭 UX가 동작해야 하고(`ktc.spec.ts`가 이를 전제로 마커 버튼을 찾아 클릭) 실제로
+    로컬 검수 워크플로도 이를 요구하므로, 항상 비어 있지 않은 값(실제 키 또는
+    `KEYLESS_PLACEHOLDER_KEY`)을 넘겨 지도는 항상 뜨게 하고, 실제 키 부재는 별도
+    오버레이 배지("VWorld 지도 키 없음")로 알린다.
+  - **[MAJOR]** 선택 해제 시 `cameraTarget`이 `undefined`가 되면 라이브러리가 이를 기본
+    `center`/`zoom` prop(국가 전체 뷰)으로 간주해 그쪽으로 `easeTo`한다 — 목록
+    필터/정렬 변경마다(선택이 매번 초기화됨) 원치 않는 축소→재확대가 발생했다.
+    마지막 초점을 state로 기억해 선택 해제 시에도 카메라를 제자리에 둔다.
+  - **[MAJOR]** `geolocate`/`scale`이 기본값 `true`라 브라우저 위치 권한 팝업과 스케일
+    바가 새로 나타났다. `geolocate={false} scale={false}`로 이전과 동일하게(내비게이션
+    컨트롤만) 맞췄다.
+  - **[MINOR]** `Popup`의 `closeOnClick` 기본값이 `true`이고 한번 닫히면 같은 인스턴스가
+    되살아나지 않아, 지도 배경을 한 번만 클릭해도 이후 어떤 장소를 선택해도 팝업이 다시
+    뜨지 않았다. `closeOnClick={false}`로 고정.
+  - `data-marker-number` 대신 라이브러리의 `interactionId` prop(→ `data-interaction-id`)으로
+    선택 마커 식별 hook을 복원하고, `tests/e2e/live-shell.spec.ts`의 관련 selector를 갱신했다
+    (`tests/e2e/ktc.spec.ts`의 `#vworld-map-container`/`data-status` 단언은 변경 불필요).
+  - 알려진 채택 한계(후속 과제로 남김): 라이브러리 `Marker`의 root가 `role="button"`+
+    `aria-label`만 갖고 `tabindex`/키보드 이벤트가 없어, 기존 실제 `&lt;button&gt;` 대비
+    키보드 접근성이 후퇴한다 — 현재 E2E는 이를 검증하지 않으며, 근본 수정은
+    `maplibre-vworld-react` 쪽 `Marker` 컴포넌트 보강이 필요하다.
+- **검증**: `.env.local`에 로컬 전용 관리자 계정(PBKDF2 해시)·세션 시크릿을 임시로 구성해
+  실제 로그인 → 목록 클릭 → 지도 마커 선택·포커스·팝업 → 배경 클릭 후 다른 장소 선택 시
+  팝업 복원까지 실브라우저로 확인했다(로컬 PostgreSQL 미구성으로 공식 Playwright E2E
+  하니스는 n150에서 별도 확인 예정). frontend lint·`tsc --noEmit`·Vitest 336건·
+  `next build --webpack`을 통과했다.
+
 ## 2026-09-04: mcp 서비스 crash-loop 긴급 수정 (mcp 2.x 전이 의존성)
 
 - **장애**: Prometheus/로그인 정렬 변경 배포로 backend 3서비스(api/mcp/scheduler,

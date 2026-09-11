@@ -332,7 +332,7 @@ test.describe('n150 live UI 셸 검증', () => {
               .querySelector('#vworld-map-container')
               ?.getBoundingClientRect();
             const marker = document
-              .querySelector('#vworld-map-container [data-selected="true"][data-marker-number]')
+              .querySelector('#vworld-map-container [data-selected="true"][data-interaction-id]')
               ?.getBoundingClientRect();
             if (!map || !marker) return null;
             return {
