@@ -25,6 +25,12 @@
 
 ## 완료
 
+- [x] **VWorld 지도를 공용 vworld-map-web 라이브러리로 교체**: 형제 모노레포
+  `maplibre-vworld-react`의 `vworld-map-web`(pinvi가 이미 소비 중)을 vendor tarball로
+  도입해 `VWorldMap.tsx`의 명령형 maplibre-gl 구현을 선언형 API로 교체했다. 적대적 리뷰
+  2인이 발견한 keyless 마운트 실패(BLOCKER)·선택 해제 시 카메라 국가뷰 복귀(MAJOR)·
+  geolocate/scale 컨트롤 노출(MAJOR)·팝업 미복원(MINOR)을 모두 수정하고 실브라우저로
+  검증했다. 상세는 `docs/journal.md` 2026-09-11 항목 참조.
 - [x] **로그인 CSRF Origin 검사를 docker-manager와 정렬**: `requestHasSameOrigin`이
   Origin 헤더 부재를 거부하도록 바꿨다(기존엔 통과). 세션/rate-limit 영속화와 CIDR
   trusted-proxy는 범위에서 제외(전자는 단일 컨테이너로 충분, 후자는 Next.js
