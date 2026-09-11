@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-09-11: UI Dockerfile이 vendor tarball보다 먼저 npm ci를 실행하는 문제 긴급 수정
+
+- **장애**: vworld-map-web 마이그레이션(PR #228)을 n150에 배포하며 UI 이미지를 재빌드하자
+  `npm ci`가 `ENOENT: no such file or directory, open '/app/vendor/vworld-map-web-1.0.0.tgz'`로
+  실패했다. `frontend/Dockerfile`이 레이어 캐싱을 위해 `package.json`/`package-lock.json`만
+  먼저 COPY하고 `npm ci`를 실행한 뒤 나머지 소스를 COPY하는데, `package-lock.json`의
+  `file:vendor/*.tgz` 참조는 실제 tarball 파일이 그 시점에 이미 빌드 컨텍스트에 있어야
+  한다 — 레지스트리 의존성만 있던 기존 구조에서는 드러나지 않던 문제다.
+- **조치**: `package.json`/`package-lock.json` 다음, `npm ci` 이전에 `COPY vendor ./vendor`를
+  추가했다. `package.json`/`package-lock.json`/`vendor`가 바뀔 때만 이 레이어가 무효화되므로
+  기존 캐싱 이점은 유지된다.
+- **검증**: n150에서 UI 이미지 재빌드 후 정상 기동을 확인한다(배포 진행 중, 상세는 다음
+  기록 참조).
+
 ## 2026-09-11: VWorld 지도를 공용 vworld-map-web 라이브러리로 교체
 
 - **배경**: `frontend/src/components/VWorldMap.tsx`가 `maplibre-gl`을 직접 명령형으로
